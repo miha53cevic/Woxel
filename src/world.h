@@ -19,7 +19,7 @@ enum NEIGHBOUR
 class Chunk
 {
 public:
-    Chunk(glm::vec3 position);
+    Chunk(glm::vec3 position, gl::TextureAtlas* atlas);
 
     void setBlockLocal(int x, int y, int z, int blockid);
     int  getBlockLocal(int x, int y, int z);
@@ -39,6 +39,8 @@ private:
     Chunk* m_neighbours[6];
 
     void generateMesh();
+
+    gl::TextureAtlas* m_atlas;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -59,6 +61,8 @@ public:
 
     void generateFlatTerrain();
     void generateTerrain(float freq, int minAmp, int maxAmp);
+
+    gl::TextureAtlas atlas;
 
     std::vector<ChunkRef> chunks;
     glm::vec3 chunkSize;

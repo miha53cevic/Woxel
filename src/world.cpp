@@ -1,10 +1,12 @@
 #include "world.h"
 #include "cube.h"
 #include "math.h"
+#include "blocks.h"
 
 #define DEBUG
 
-Chunk::Chunk(glm::vec3 position)
+Chunk::Chunk(glm::vec3 position, gl::TextureAtlas* atlas)
+    : m_atlas(atlas)
 {
     chunk.position = position;
 
@@ -51,8 +53,6 @@ void Chunk::generateFlat()
                 if (y >= (CHUNK_SIZE / 2))
                     m_blocks[x][y][z] = 0;
             }
-
-    generateMesh();
 }
 
 void Chunk::generateTerrain(float freq, int minAmp, int maxAmp)
@@ -69,11 +69,18 @@ void Chunk::generateTerrain(float freq, int minAmp, int maxAmp)
 
             for (int y = 0; y < height; y++)
             {
-                m_blocks[x][y][z] = 1;
+                /*
+                *   First layer is grass
+                *   the next 2 layers are dirt
+                *   everything below that is stone
+                */
+                if (y == height - 1)
+                    m_blocks[x][y][z] = Blocks::GRASS;
+                else if (y == height - 2 || y == height - 3)
+                    m_blocks[x][y][z] = Blocks::DIRT;
+                else m_blocks[x][y][z] = Blocks::STONE;
             }
         }
-
-    generateMesh();
 }
 
 void Chunk::setNeighbour(NEIGHBOUR n, Chunk * c)
@@ -88,8 +95,10 @@ void Chunk::generateMesh()
     std::vector<GLuint>  temp_indicies;
 
     int indicies = 0;
-    auto createFace = [&](Cube::Face face, int x, int y, int z)
+    auto createFace = [&](Cube::CubeFace cubeface, int x, int y, int z)
     {
+        auto face = Cube::getCubeFace(cubeface);
+
         for (int i = 0; i < (int)face.verticies.size() / 3; i++)
         {
             temp_verticies.push_back(face.verticies[0 + i * 3] + x);
@@ -97,7 +106,8 @@ void Chunk::generateMesh()
             temp_verticies.push_back(face.verticies[2 + i * 3] + z);
         }
 
-        temp_textureCoords.insert(temp_textureCoords.end(), face.textureCoords.begin(), face.textureCoords.end());
+        auto texCoords = Blocks::getTextureCoords((Blocks::BLOCK)m_blocks[x][y][z], cubeface, *m_atlas);
+        temp_textureCoords.insert(temp_textureCoords.end(), texCoords.begin(), texCoords.end());
         
         temp_indicies.push_back(indicies + 0);
         temp_indicies.push_back(indicies + 1);
@@ -124,17 +134,17 @@ void Chunk::generateMesh()
                     continue;
 
                 if (left)
-                    if (m_blocks[x - 1][y][z] == 0) createFace(Cube::getCubeFace(Cube::CubeFace::LEFT), x, y, z);
-                if(right)
-                    if (m_blocks[x + 1][y][z] == 0) createFace(Cube::getCubeFace(Cube::CubeFace::RIGHT), x, y, z);
+                    if (m_blocks[x - 1][y][z] == 0) createFace(Cube::CubeFace::LEFT, x, y, z);
+                if (right)
+                    if (m_blocks[x + 1][y][z] == 0) createFace(Cube::CubeFace::RIGHT, x, y, z);
                 if (bottom)
-                    if (m_blocks[x][y - 1][z] == 0) createFace(Cube::getCubeFace(Cube::CubeFace::BOTTOM), x, y, z);
+                    if (m_blocks[x][y - 1][z] == 0) createFace(Cube::CubeFace::BOTTOM, x, y, z);
                 if (top)
-                    if (m_blocks[x][y + 1][z] == 0) createFace(Cube::getCubeFace(Cube::CubeFace::TOP), x, y, z);
+                    if (m_blocks[x][y + 1][z] == 0) createFace(Cube::CubeFace::TOP, x, y, z);
                 if (back)
-                    if (m_blocks[x][y][z - 1] == 0) createFace(Cube::getCubeFace(Cube::CubeFace::BACK), x, y, z);
+                    if (m_blocks[x][y][z - 1] == 0) createFace(Cube::CubeFace::BACK, x, y, z);
                 if (front)
-                    if (m_blocks[x][y][z + 1] == 0) createFace(Cube::getCubeFace(Cube::CubeFace::FRONT), x, y, z);
+                    if (m_blocks[x][y][z + 1] == 0) createFace(Cube::CubeFace::FRONT, x, y, z);
 
 
                 // Check 1 block width with neighbouring chunks for only the outer chunk blocks
@@ -146,17 +156,17 @@ void Chunk::generateMesh()
                 //
                 // - !left i drugi znaèi da su to vanjske kocke chunka tj. da nemaju susjeda na toj strani
                 if (!left && m_neighbours[EAST] != nullptr)
-                    if (m_neighbours[EAST]->getBlockLocal(CHUNK_SIZE-1,y,z) == 0) createFace(Cube::getCubeFace(Cube::CubeFace::LEFT), x, y, z);
+                    if (m_neighbours[EAST]->getBlockLocal(CHUNK_SIZE - 1, y, z) == 0) createFace(Cube::CubeFace::LEFT, x, y, z);
                 if (!right && m_neighbours[WEST] != nullptr)
-                    if (m_neighbours[WEST]->getBlockLocal(0,y,z) == 0) createFace(Cube::getCubeFace(Cube::CubeFace::RIGHT), x, y, z);
+                    if (m_neighbours[WEST]->getBlockLocal(0, y, z) == 0) createFace(Cube::CubeFace::RIGHT, x, y, z);
                 if (!bottom && m_neighbours[BELOW] != nullptr)
-                    if (m_neighbours[BELOW]->getBlockLocal(x,CHUNK_SIZE-1,z) == 0) createFace(Cube::getCubeFace(Cube::CubeFace::BOTTOM), x, y, z);
+                    if (m_neighbours[BELOW]->getBlockLocal(x, CHUNK_SIZE - 1, z) == 0) createFace(Cube::CubeFace::BOTTOM, x, y, z);
                 if (!top && m_neighbours[ABOVE] != nullptr)
-                    if (m_neighbours[ABOVE]->getBlockLocal(x,0,z) == 0) createFace(Cube::getCubeFace(Cube::CubeFace::TOP), x, y, z);
+                    if (m_neighbours[ABOVE]->getBlockLocal(x, 0, z) == 0) createFace(Cube::CubeFace::TOP, x, y, z);
                 if (!back && m_neighbours[NORTH] != nullptr)
-                    if (m_neighbours[NORTH]->getBlockLocal(x,y,CHUNK_SIZE-1) == 0) createFace(Cube::getCubeFace(Cube::CubeFace::BACK), x, y, z);
+                    if (m_neighbours[NORTH]->getBlockLocal(x, y, CHUNK_SIZE - 1) == 0) createFace(Cube::CubeFace::BACK, x, y, z);
                 if (!front && m_neighbours[SOUTH] != nullptr)
-                    if (m_neighbours[SOUTH]->getBlockLocal(x,y,0) == 0) createFace(Cube::getCubeFace(Cube::CubeFace::FRONT), x, y, z);
+                    if (m_neighbours[SOUTH]->getBlockLocal(x, y, 0) == 0) createFace(Cube::CubeFace::FRONT, x, y, z);
             }
 
     // Set VBO adds a new VBO to the entity
@@ -183,6 +193,7 @@ void Chunk::generateMesh()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 ChunkManager::ChunkManager()
+    : atlas("resources/textures/textureAtlas.png", 2048, 256)
 {
 }
 
@@ -195,8 +206,8 @@ void ChunkManager::generateChunks(int x, int y, int z)
         for (int sy = 0; sy < y; sy++)
             for (int sz = 0; sz < z; sz++)
             {
-                auto temp = std::make_unique<Chunk>(glm::vec3(sx * CHUNK_SIZE, sy * CHUNK_SIZE, sz * CHUNK_SIZE));
-                temp->chunk.texture.loadTexture("resources/textures/grass/grass top.png");
+                auto temp = std::make_unique<Chunk>(glm::vec3(sx * CHUNK_SIZE, sy * CHUNK_SIZE, sz * CHUNK_SIZE), &atlas);
+                //temp->chunk.texture.loadTexture("resources/textures/textureAtlas.png");
                 chunks.push_back(std::move(temp));
             }
 
@@ -285,12 +296,31 @@ void ChunkManager::generateFlatTerrain()
 {
     for (auto& chunk : chunks)
         chunk->generateFlat();
+
+    /*
+    *   Note
+    *   -----
+    *   - After generating the terrain we need to update every chunk.
+    *   - If we don't the changes to the chunks blocks won't be able to be seen from other chunks
+    *   Example
+    *   - 1. chunk gets it's blocks set and since the other chunks blocks haven't been set and by default
+    *   - a multi dimensional array has a default value of 0 it sees that it should make a wall with the other
+    *   - chunks even though they haven't been setup properly yet.
+    *   - This is also why generateChunkMesh isn't called in the chunk->generateTerrain functions since it needs to be called
+    *   - after every chunk has had it's blocks set up.
+    */
+    for (auto& chunk : chunks)
+        chunk->Update();
 }
 
 void ChunkManager::generateTerrain(float freq, int minAmp, int maxAmp)
 {
     for (auto& chunk : chunks)
         chunk->generateTerrain(freq, minAmp, maxAmp);
+
+    // Check note in generateFlatTerrain() function
+    for (auto& chunk : chunks)
+        chunk->Update();
 }
 
 int ChunkManager::IndexFrom3D(int x, int y, int z)

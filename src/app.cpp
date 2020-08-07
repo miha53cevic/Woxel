@@ -191,6 +191,5 @@ void App::setClearColor(int r, int g, int b, int a)
     float _g = g / 255.0f;
     float _b = b / 255.0f;
     float _a = a / 255.0f;
-    printf("%f", _r);
     glClearColor(_r, _g, _b, _a);
 }

@@ -88,7 +88,7 @@ private:
 
         // Render chunks in the chunk_manager
         for (auto& i : chunk_manager.chunks)
-            RenderEntity(i->chunk, shader);
+            RenderChunk(i->chunk, shader);
 
         RenderEntity(voxelOutline, outline, GL_LINES);
 
@@ -111,6 +111,24 @@ private:
 
         e.VAO.Bind();
         glDrawElements(mode, e.EBO.size, GL_UNSIGNED_INT, 0);
+        e.VAO.Unbind();
+
+        s.Unbind();
+    }
+
+    void RenderChunk(Entity& e, gl::Shader& s)
+    {
+        s.Bind();
+
+        chunk_manager.atlas.texture.activateAndBind();
+
+        s.loadMatrix(
+            s.getUniformLocation("MVPMatrix"),
+            Math::createMVPMatrix(glm::vec2(ScreenWidth(), ScreenHeight()), 90, 0.1f, 100.0f, camera, e)
+        );
+
+        e.VAO.Bind();
+        glDrawElements(GL_TRIANGLES, e.EBO.size, GL_UNSIGNED_INT, 0);
         e.VAO.Unbind();
 
         s.Unbind();
@@ -165,6 +183,7 @@ private:
     Camera camera;
     ChunkManager chunk_manager;
     glm::vec3 lastRayPos;
+
     Entity voxelOutline;
     gl::Shader outline;
 };
