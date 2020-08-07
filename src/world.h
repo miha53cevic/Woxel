@@ -27,6 +27,9 @@ public:
     void Update();
     void UpdateNeighbours();
 
+    void generateFlat();
+    void generateTerrain(float freq, int minAmp, int maxAmp);
+
     void setNeighbour(NEIGHBOUR n, Chunk* c);
 
     Entity chunk;
@@ -35,7 +38,6 @@ private:
 
     Chunk* m_neighbours[6];
 
-    void generateChunk();
     void generateMesh();
 };
 
@@ -54,6 +56,9 @@ public:
     void setBlockGlobal(int x, int y, int z, int blockid);
 
     Chunk* getChunkFromGlobal(int x, int y, int z);
+
+    void generateFlatTerrain();
+    void generateTerrain(float freq, int minAmp, int maxAmp);
 
     std::vector<ChunkRef> chunks;
     glm::vec3 chunkSize;

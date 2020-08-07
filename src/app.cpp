@@ -175,7 +175,7 @@ void App::init_screen(const char * title)
         sdl_die("Failed to create OpenGL context");
 
     // Check OpenGL properties
-    printf("OpenGL loaded\n");
+    printf("[OpenGL loaded]\n");
     gladLoadGLLoader(SDL_GL_GetProcAddress);
     printf("Vendor:   %s\n", glGetString(GL_VENDOR));
     printf("Renderer: %s\n", glGetString(GL_RENDERER));
@@ -187,9 +187,10 @@ void App::init_screen(const char * title)
 
 void App::setClearColor(int r, int g, int b, int a)
 {
-    float _r = r / 255;
-    float _g = g / 255;
-    float _b = b / 255;
-    float _a = a / 255;
+    float _r = r / 255.0f;
+    float _g = g / 255.0f;
+    float _b = b / 255.0f;
+    float _a = a / 255.0f;
+    printf("%f", _r);
     glClearColor(_r, _g, _b, _a);
 }

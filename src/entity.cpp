@@ -22,3 +22,14 @@ void Entity::setVBO(const std::vector<GLfloat>& data, int attributeID, int size,
     VBOs.push_back(std::move(VBO));
     VAO.Unbind();
 }
+
+void Entity::updateVBO(int index, const std::vector<GLfloat>& data, int attributeID, int size, int DrawMode)
+{
+    VBOs[index]->setData(data, attributeID, size, DrawMode);
+}
+
+void Entity::freeVBOs()
+{
+    for (auto& vbo : VBOs)
+        vbo.reset(); // delete the object, leaving vbo empty
+}

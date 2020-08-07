@@ -1,5 +1,8 @@
 #include "world.h"
 #include "cube.h"
+#include "math.h"
+
+#define DEBUG
 
 Chunk::Chunk(glm::vec3 position)
 {
@@ -7,8 +10,6 @@ Chunk::Chunk(glm::vec3 position)
 
     for (int i = 0; i < 6; i++)
         m_neighbours[i] = nullptr;
-
-    generateChunk();
 }
 
 void Chunk::setBlockLocal(int x, int y, int z, int blockid)
@@ -40,30 +41,44 @@ void Chunk::UpdateNeighbours()
             m_neighbours[i]->Update();
 }
 
-void Chunk::setNeighbour(NEIGHBOUR n, Chunk * c)
-{
-    m_neighbours[n] = c;
-}
-
-void Chunk::generateChunk()
+void Chunk::generateFlat()
 {
     for (int x = 0; x < CHUNK_SIZE; x++)
         for (int y = 0; y < CHUNK_SIZE; y++)
             for (int z = 0; z < CHUNK_SIZE; z++)
             {
                 m_blocks[x][y][z] = 1;
-                if (y == CHUNK_SIZE - 1)
+                if (y >= (CHUNK_SIZE / 2))
                     m_blocks[x][y][z] = 0;
             }
 
-    for (int x = 1; x < CHUNK_SIZE - 1; x++)
-        for (int y = 1; y < CHUNK_SIZE - 1; y++)
-            for (int z = 1; z < CHUNK_SIZE - 1; z++)
+    generateMesh();
+}
+
+void Chunk::generateTerrain(float freq, int minAmp, int maxAmp)
+{
+    for (int x = 0; x < CHUNK_SIZE; x++)
+        for (int z = 0; z < CHUNK_SIZE; z++)
+        {
+            int posX = chunk.position.x;
+            int posZ = chunk.position.z;
+            int height = Math::simplex2((posX + x) / freq, (posZ + z) / freq, 4, 1.5f, 0.1f) * maxAmp + minAmp;
+
+            if (height >= CHUNK_SIZE)
+                height = CHUNK_SIZE - 1;
+
+            for (int y = 0; y < height; y++)
             {
                 m_blocks[x][y][z] = 1;
             }
+        }
 
     generateMesh();
+}
+
+void Chunk::setNeighbour(NEIGHBOUR n, Chunk * c)
+{
+    m_neighbours[n] = c;
 }
 
 void Chunk::generateMesh()
@@ -121,11 +136,15 @@ void Chunk::generateMesh()
                 if (front)
                     if (m_blocks[x][y][z + 1] == 0) createFace(Cube::getCubeFace(Cube::CubeFace::FRONT), x, y, z);
 
-                // Check with 1 block width of neighbouring chunks
-                if (!right && m_neighbours[WEST] != nullptr)
-                    if (m_neighbours[WEST]->getBlockLocal(x, y, z) == 0)
-                        printf("Hello\n");
 
+                // Check 1 block width with neighbouring chunks for only the outer chunk blocks
+                // Primjer:
+                // ---------
+                // - Ako gledamo recimo lijevi/WEST neighbour onda gledamo sa krajnom kockom tog
+                // - susjednog chunka, a ako recimo gledamo desno/EAST onda trebamo provjeriti s
+                // - prvom ili nultom kockom tog susjednog chunka
+                //
+                // - !left i drugi znaèi da su to vanjske kocke chunka tj. da nemaju susjeda na toj strani
                 if (!left && m_neighbours[EAST] != nullptr)
                     if (m_neighbours[EAST]->getBlockLocal(CHUNK_SIZE-1,y,z) == 0) createFace(Cube::getCubeFace(Cube::CubeFace::LEFT), x, y, z);
                 if (!right && m_neighbours[WEST] != nullptr)
@@ -135,16 +154,30 @@ void Chunk::generateMesh()
                 if (!top && m_neighbours[ABOVE] != nullptr)
                     if (m_neighbours[ABOVE]->getBlockLocal(x,0,z) == 0) createFace(Cube::getCubeFace(Cube::CubeFace::TOP), x, y, z);
                 if (!back && m_neighbours[NORTH] != nullptr)
-                    if (m_neighbours[NORTH]->getBlockLocal(x,y,0) == 0) createFace(Cube::getCubeFace(Cube::CubeFace::BACK), x, y, z);
+                    if (m_neighbours[NORTH]->getBlockLocal(x,y,CHUNK_SIZE-1) == 0) createFace(Cube::getCubeFace(Cube::CubeFace::BACK), x, y, z);
                 if (!front && m_neighbours[SOUTH] != nullptr)
-                    if (m_neighbours[SOUTH]->getBlockLocal(x,y,CHUNK_SIZE-1) == 0) createFace(Cube::getCubeFace(Cube::CubeFace::FRONT), x, y, z);
+                    if (m_neighbours[SOUTH]->getBlockLocal(x,y,0) == 0) createFace(Cube::getCubeFace(Cube::CubeFace::FRONT), x, y, z);
             }
 
-    chunk.setVBO(temp_verticies, 0, 3);
-    chunk.setVBO(temp_textureCoords, 1, 2);
+    // Set VBO adds a new VBO to the entity
+    // so we have to use update which just changes the data.
+    // We still have to initially set them though
+    if (chunk.VBOs.empty())
+    {
+        chunk.setVBO(temp_verticies, 0, 3);
+        chunk.setVBO(temp_textureCoords, 1, 2);
+    }
+    else
+    {
+        chunk.updateVBO(0, temp_verticies, 0, 3);
+        chunk.updateVBO(1, temp_textureCoords, 1, 2);
+    }
     chunk.setEBO(temp_indicies);
 
+#ifdef DEBUG
     printf("Chunk Verticies: %d\n", temp_verticies.size());
+    printf("VBOs: %d\n\n", chunk.VBOs.size());
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -163,7 +196,7 @@ void ChunkManager::generateChunks(int x, int y, int z)
             for (int sz = 0; sz < z; sz++)
             {
                 auto temp = std::make_unique<Chunk>(glm::vec3(sx * CHUNK_SIZE, sy * CHUNK_SIZE, sz * CHUNK_SIZE));
-                temp->chunk.texture.loadTexture("resources/textures/plank_draft.png");
+                temp->chunk.texture.loadTexture("resources/textures/grass/grass top.png");
                 chunks.push_back(std::move(temp));
             }
 
@@ -180,6 +213,8 @@ void ChunkManager::generateChunks(int x, int y, int z)
                 if (sy != y - 1) top = true;
                 if (sz != z - 1) front = true;
 
+                // boolean values tell us if a given chunk can have a neighbour on that side and if it can
+                // we add a reference to that neighbour to the given chunk[x][y][z]
                 if (left)
                     chunks[IndexFrom3D(sx, sy, sz)]->setNeighbour(EAST, chunks[IndexFrom3D(sx-1, sy, sz)].get());
                 if (right)
@@ -194,8 +229,7 @@ void ChunkManager::generateChunks(int x, int y, int z)
                     chunks[IndexFrom3D(sx, sy, sz)]->setNeighbour(BELOW, chunks[IndexFrom3D(sx, sy-1, sz)].get());
             }
 
-    for (auto& chunk : chunks)
-        chunk->Update();
+    generateFlatTerrain();
 }
 
 int ChunkManager::getBlockGlobal(int x, int y, int z)
@@ -245,6 +279,18 @@ Chunk* ChunkManager::getChunkFromGlobal(int x, int y, int z)
         return nullptr;
 
     return chunks[IndexFrom3D(cx, cy, cz)].get();
+}
+
+void ChunkManager::generateFlatTerrain()
+{
+    for (auto& chunk : chunks)
+        chunk->generateFlat();
+}
+
+void ChunkManager::generateTerrain(float freq, int minAmp, int maxAmp)
+{
+    for (auto& chunk : chunks)
+        chunk->generateTerrain(freq, minAmp, maxAmp);
 }
 
 int ChunkManager::IndexFrom3D(int x, int y, int z)

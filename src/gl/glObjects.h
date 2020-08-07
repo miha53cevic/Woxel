@@ -393,6 +393,7 @@ void gl::ElementArrayBuffer::setSubData(const std::vector<GLuint>& indicies)
 /////////////////////////////
 gl::Texture::Texture()
 {
+    texture = -1;
 }
 
 gl::Texture::Texture(std::string texture_path)

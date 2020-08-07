@@ -17,6 +17,10 @@ struct Entity
     void setEBO(const std::vector<GLuint>& indicies, int DrawMode = GL_STATIC_DRAW);
     void setVBO(const std::vector<GLfloat>& data, int attributeID, int size, int DrawMode = GL_STATIC_DRAW);
 
+    void updateVBO(int index, const std::vector<GLfloat>& data, int attributeID, int size, int DrawMode = GL_STATIC_DRAW);
+
+    void freeVBOs();
+
     std::vector<std::unique_ptr<gl::VertexBufferObject>> VBOs;
 
     gl::Texture texture;
