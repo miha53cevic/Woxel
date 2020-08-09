@@ -62,10 +62,10 @@ namespace Math
     // - octaves: how many times should you combine the noise
     // - persistence: changes the height values (lower values add more height, higher values make the height deeper)
     // - lacunarity: frequency of sample points (lower values adds noise closer, whilst higher values make the noise more distant)
-    float simplex2(float x, float y, int octaves, float persistence, float lacunarity);
+    float simplex2(float x, float y, float frequencies, int octaves, float persistence, float lacunarity);
 
     // Get 3D simplex noise
-    float simplex3(float x, float y, float z, int octaves, float persistence, float lacunarity);
+    float simplex3(float x, float y, float frequencies, float z, int octaves, float persistence, float lacunarity);
 
     // Ray class
     class Ray

@@ -55,14 +55,16 @@ void Chunk::generateFlat()
             }
 }
 
-void Chunk::generateTerrain(float freq, int minAmp, int maxAmp)
+void Chunk::generateTerrain(float freq,  int minAmp, int maxAmp)
 {
     for (int x = 0; x < CHUNK_SIZE; x++)
         for (int z = 0; z < CHUNK_SIZE; z++)
         {
-            int posX = chunk.position.x;
-            int posZ = chunk.position.z;
-            int height = Math::simplex2((posX + x) / freq, (posZ + z) / freq, 4, 1.5f, 0.1f) * maxAmp + minAmp;
+            // noise don't like int values as x and y so we change them from 0.0 - 1.0f
+            float posX = (chunk.position.x + x) / CHUNK_SIZE;
+            float posZ = (chunk.position.z + z) / CHUNK_SIZE;
+
+            int height = Math::simplex2(posX, posZ, freq, 5, 0.5f, 2.0f) * maxAmp + minAmp;
 
             if (height >= CHUNK_SIZE)
                 height = CHUNK_SIZE - 1;
