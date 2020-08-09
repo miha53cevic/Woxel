@@ -57,6 +57,13 @@ void Chunk::generateFlat()
 
 void Chunk::generateTerrain(float freq,  int minAmp, int maxAmp)
 {
+    // Set all blocks to air first
+    for (int x = 0; x < CHUNK_SIZE; x++)
+        for (int y = 0; y < CHUNK_SIZE; y++)
+            for (int z = 0; z < CHUNK_SIZE; z++)
+                m_blocks[x][y][z] = Blocks::AIR;
+
+    // Set up the terrain
     for (int x = 0; x < CHUNK_SIZE; x++)
         for (int z = 0; z < CHUNK_SIZE; z++)
         {
@@ -64,10 +71,11 @@ void Chunk::generateTerrain(float freq,  int minAmp, int maxAmp)
             float posX = (chunk.position.x + x) / CHUNK_SIZE;
             float posZ = (chunk.position.z + z) / CHUNK_SIZE;
 
-            int height = Math::simplex2(posX, posZ, freq, 5, 0.5f, 2.0f) * maxAmp + minAmp;
+            int height = Math::simplex2(posX, posZ, freq, 4, 0.5f, 2.0f, 1.0f) * maxAmp + minAmp;
 
-            if (height >= CHUNK_SIZE)
-                height = CHUNK_SIZE - 1;
+            // Check if the height is valid
+            if (height > CHUNK_SIZE)
+                height = CHUNK_SIZE;
 
             for (int y = 0; y < height; y++)
             {
@@ -81,6 +89,9 @@ void Chunk::generateTerrain(float freq,  int minAmp, int maxAmp)
                 else if (y == height - 2 || y == height - 3)
                     m_blocks[x][y][z] = Blocks::DIRT;
                 else m_blocks[x][y][z] = Blocks::STONE;
+
+                if (height <= 8)
+                    m_blocks[x][y][z] = Blocks::WATER;
             }
         }
 }

@@ -52,8 +52,8 @@ private:
         cube.setVBO(Cube::verticies, 0, 3);
         cube.setVBO(Cube::textureCoords, 1, 2);
 
-        chunk_manager.generateChunks(2, 1, 2);
-        chunk_manager.generateTerrain(0.5f ,8, CHUNK_SIZE - 8);
+        chunk_manager.generateChunks(3, 1, 3);
+        chunk_manager.generateTerrain(0.24f, 1, CHUNK_SIZE - 4);
         printf("Created %d chunk(s)\n", chunk_manager.chunks.size());
 
         outline.setAttribute(0, "position");

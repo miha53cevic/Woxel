@@ -37,6 +37,10 @@ std::vector<GLfloat> Blocks::getTextureCoords(BLOCK id, Cube::CubeFace face, gl:
         coords = { 7, 0 };
         break;
 
+    case WATER:
+        coords = { 0, 1 };
+        break;
+
     // if no cases are valid return error texture coords
     default:
         coords = { 7, 7 };

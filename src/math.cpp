@@ -167,7 +167,7 @@ float Math::map(float s, float a1, float a2, float b1, float b2)
 // Octaves     - how many times you combine the noise
 // Persistence - how amplitude changes with octaves
 // Lacunarity  - how frequencies change with octaves
-float Math::simplex2(float x, float y, float frequencies, int octaves, float persistence, float lacunarity)
+float Math::simplex2(float x, float y, float frequencies, int octaves, float persistence, float lacunarity, float redistribution)
 {
     float freq = frequencies;
     float amp = 1.0f;
@@ -181,10 +181,10 @@ float Math::simplex2(float x, float y, float frequencies, int octaves, float per
         total += glm::simplex(glm::vec2(x * freq, y * freq)) * amp;
     }
     // Map from [-1, 1] to [0, 1]
-    return (1 + total / max) / 2;
+    return powf((1 + total / max) / 2, redistribution);
 }
 
-float Math::simplex3(float x, float y, float z, float frequencies, int octaves, float persistence, float lacunarity)
+float Math::simplex3(float x, float y, float z, float frequencies, int octaves, float persistence, float lacunarity, float redistribution)
 {
     float freq = frequencies;
     float amp = 1.0f;
@@ -198,7 +198,7 @@ float Math::simplex3(float x, float y, float z, float frequencies, int octaves, 
         total += glm::simplex(glm::vec3(x * freq, y * freq, z * freq)) * amp;
     }
     // Map from [-1, 1] to [0, 1]
-    return (1 + total / max) / 2;
+    return powf((1 + total / max) / 2, redistribution);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
