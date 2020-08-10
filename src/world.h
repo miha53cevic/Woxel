@@ -59,7 +59,7 @@ public:
 
     Chunk* getChunkFromGlobal(int x, int y, int z);
 
-    void generateFlatTerrain();
+    void generateFlatTerrain(int minAmp);
     void generateTerrain(float freq, int minAmp, int maxAmp);
 
     gl::TextureAtlas atlas;
@@ -71,5 +71,7 @@ private:
     int IndexFrom3D(int x, int y, int z);
     bool ChunkOutOfBounds(int x, int y, int z);
 };
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #endif

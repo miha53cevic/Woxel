@@ -12,6 +12,12 @@ Chunk::Chunk(glm::vec3 position, gl::TextureAtlas* atlas)
 
     for (int i = 0; i < 6; i++)
         m_neighbours[i] = nullptr;
+
+    // By default the chunk is empty with AIR blocks
+    for (int x = 0; x < CHUNK_SIZE; x++)
+        for (int y = 0; y < CHUNK_SIZE; y++)
+            for (int z = 0; z < CHUNK_SIZE; z++)
+                m_blocks[x][y][z] = Blocks::AIR;
 }
 
 void Chunk::setBlockLocal(int x, int y, int z, int blockid)
@@ -43,6 +49,7 @@ void Chunk::UpdateNeighbours()
             m_neighbours[i]->Update();
 }
 
+// Unused function that is mean't for single chunks only
 void Chunk::generateFlat()
 {
     for (int x = 0; x < CHUNK_SIZE; x++)
@@ -55,6 +62,7 @@ void Chunk::generateFlat()
             }
 }
 
+// Unused function that is mean't for single chunks only
 void Chunk::generateTerrain(float freq,  int minAmp, int maxAmp)
 {
     // Set all blocks to air first
@@ -90,7 +98,7 @@ void Chunk::generateTerrain(float freq,  int minAmp, int maxAmp)
                     m_blocks[x][y][z] = Blocks::DIRT;
                 else m_blocks[x][y][z] = Blocks::STONE;
 
-                if (height <= 8)
+                if (height <= 8 && height > 0)
                     m_blocks[x][y][z] = Blocks::WATER;
             }
         }
@@ -252,8 +260,6 @@ void ChunkManager::generateChunks(int x, int y, int z)
                 if (bottom)
                     chunks[IndexFrom3D(sx, sy, sz)]->setNeighbour(BELOW, chunks[IndexFrom3D(sx, sy-1, sz)].get());
             }
-
-    generateFlatTerrain();
 }
 
 int ChunkManager::getBlockGlobal(int x, int y, int z)
@@ -305,10 +311,60 @@ Chunk* ChunkManager::getChunkFromGlobal(int x, int y, int z)
     return chunks[IndexFrom3D(cx, cy, cz)].get();
 }
 
-void ChunkManager::generateFlatTerrain()
+void ChunkManager::generateFlatTerrain(int minAmp)
 {
-    for (auto& chunk : chunks)
-        chunk->generateFlat();
+    // Go through every XZ chunk
+    for (int cx = 0; cx < chunkSize.x; cx++)
+        for (int cz = 0; cz < chunkSize.z; cz++)
+        {
+            // For every block in a chunk go up to the minimum Amplitude and fill in the chunks to that height
+            for (int x = 0; x < CHUNK_SIZE; x++)
+                for (int z = 0; z < CHUNK_SIZE; z++)
+                {
+                    
+                    // Check if the height is valid
+                    int height = minAmp;
+                    if (height > (CHUNK_SIZE * chunkSize.y))
+                        height = (CHUNK_SIZE * chunkSize.y);
+
+                    // chunkY - the chunk that has air blocks since it has the top layer
+                    // heightLocal - is the local chunk block that has the maximum height, it goes from [0, CHUNK_SIZE]
+                    int chunkY = height / CHUNK_SIZE;
+                    int heightLocal = height % CHUNK_SIZE;
+
+                    // IMPORTANT
+                    // ---------
+                    // It has to be <= because heightLocal can be 0 which makes the for loop not run
+                    // thus leaving empty spaces in the top chunk
+                    for (int y = 0; y <= heightLocal; y++)
+                    {
+                        /*
+                        *   First layer is grass
+                        *   the next 2 layers are dirt
+                        *   everything below that is stone
+                        */
+                        if (y == heightLocal)
+                            chunks[IndexFrom3D(cx, chunkY, cz)]->setBlockLocal(x, y, z, Blocks::GRASS);
+                        else if (y == heightLocal - 1 || y == heightLocal - 2)
+                            chunks[IndexFrom3D(cx, chunkY, cz)]->setBlockLocal(x, y, z, Blocks::DIRT);
+                        else chunks[IndexFrom3D(cx, chunkY, cz)]->setBlockLocal(x, y, z, Blocks::STONE);
+                    }
+
+                    // We still have to fill up any chunks that aren't the top ones because by default chunks
+                    // are filled with AIR blocks
+                    // We do this by first checking if the chunk that has the top layer has any chunks under it
+                    // Note: chunks go upwards in the positive y axis
+                    bool hasBelow = chunkY == 0 ? false : true;
+                    if (hasBelow)
+                    {
+                        // Loop through every chunk under the peak chunk
+                        for (int i = 0; i < chunkY; i++)
+                            // Set every block for those chunks
+                            for (int h = 0; h < CHUNK_SIZE; h++)
+                                chunks[IndexFrom3D(cx, i, cz)]->setBlockLocal(x, h, z, Blocks::STONE);
+                    }
+                }
+        }
 
     /*
     *   Note
@@ -328,8 +384,63 @@ void ChunkManager::generateFlatTerrain()
 
 void ChunkManager::generateTerrain(float freq, int minAmp, int maxAmp)
 {
-    for (auto& chunk : chunks)
-        chunk->generateTerrain(freq, minAmp, maxAmp);
+    // Go through every XZ chunk
+    for (int cx = 0; cx < chunkSize.x; cx++)
+        for (int cz = 0; cz < chunkSize.z; cz++)
+        {
+            // For every block in a chunk find it's height value using simplex noise
+            // and fill in the chunks to that height
+            for (int x = 0; x < CHUNK_SIZE; x++)
+                for (int z = 0; z < CHUNK_SIZE; z++)
+                {
+                    glm::vec2 chunkPosXZ = { cx * CHUNK_SIZE, cz * CHUNK_SIZE };
+                    float posX = (chunkPosXZ.x + x) / CHUNK_SIZE;
+                    float posZ = (chunkPosXZ.y + z) / CHUNK_SIZE;
+
+                    int height = Math::simplex2(posX, posZ, freq, 4, 0.5f, 2.0f, 5.0f) * maxAmp + minAmp;
+
+                    // Check if the height is valid
+                    if (height > (CHUNK_SIZE * chunkSize.y))
+                        height = (CHUNK_SIZE * chunkSize.y);
+
+                    // chunkY - the chunk that has air blocks since it has the peaks or heights
+                    // heightLocal - is the local chunk block that would have the maximum height, it goes from [0, CHUNK_SIZE]
+                    int chunkY = height / CHUNK_SIZE;
+                    int heightLocal = height % CHUNK_SIZE;
+
+                    // IMPORTANT
+                    // ---------
+                    // It has to be <= because heightLocal can be 0 which makes the for loop not run
+                    // thus leaving empty spaces in the top chunk
+                    for (int y = 0; y <= heightLocal; y++)
+                    {
+                        /*
+                        *   First layer is grass
+                        *   the next 2 layers are dirt
+                        *   everything below that is stone
+                        */
+                        if (y == heightLocal)
+                            chunks[IndexFrom3D(cx, chunkY, cz)]->setBlockLocal(x, y, z, Blocks::GRASS);
+                        else if (y == heightLocal - 1 || y == heightLocal - 2)
+                            chunks[IndexFrom3D(cx, chunkY, cz)]->setBlockLocal(x, y, z, Blocks::DIRT);
+                        else chunks[IndexFrom3D(cx, chunkY, cz)]->setBlockLocal(x, y, z, Blocks::STONE);
+                    }
+
+                    // We still have to fill up any chunks that aren't the top ones because by default chunks
+                    // are filled with AIR blocks
+                    // We do this by first checking if the peak chunk has any chunks under it
+                    // Note: chunks go upwards in the positive y axis
+                    bool hasBelow = chunkY == 0 ? false : true;
+                    if (hasBelow)
+                    {
+                        // Loop through every chunk under the peak chunk
+                        for (int i = 0; i < chunkY; i++)
+                            // Set every block for those chunks
+                            for (int h = 0; h < CHUNK_SIZE; h++)
+                                chunks[IndexFrom3D(cx, i, cz)]->setBlockLocal(x, h, z, Blocks::STONE);
+                    }
+                }
+        }
 
     // Check note in generateFlatTerrain() function
     for (auto& chunk : chunks)

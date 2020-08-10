@@ -162,7 +162,10 @@ float Math::map(float s, float a1, float a2, float b1, float b2)
     return b1 + ((s - a1) * (b2 - b1)) / (a2 - a1);
 }
 
+// Check for explenation on different values
 // https://www.redblobgames.com/maps/terrain-from-noise/#elevation
+// The values in the tutorial above for persistence is 0.5 and lacunarity is 2
+// because he keeps divding the amplitude by 2 and increasing the frequency times 2
 // ----------------------------------------------------------------
 // Octaves     - how many times you combine the noise
 // Persistence - how amplitude changes with octaves
@@ -171,14 +174,13 @@ float Math::simplex2(float x, float y, float frequencies, int octaves, float per
 {
     float freq = frequencies;
     float amp = 1.0f;
-    float max = 1.0f;
+    float max = 0.0f;
     float total = 0;
-    int i;
-    for (i = 1; i < octaves; i++) {
-        freq *= lacunarity;
-        amp *= persistence;
+    for (int i = 0; i < octaves; i++) {
         max += amp;
         total += glm::simplex(glm::vec2(x * freq, y * freq)) * amp;
+        freq *= lacunarity;
+        amp *= persistence;
     }
     // Map from [-1, 1] to [0, 1]
     return powf((1 + total / max) / 2, redistribution);
@@ -188,14 +190,13 @@ float Math::simplex3(float x, float y, float z, float frequencies, int octaves, 
 {
     float freq = frequencies;
     float amp = 1.0f;
-    float max = 1.0f;
+    float max = 0.0f;
     float total = 0;
-    int i;
-    for (i = 1; i < octaves; ++i) {
-        freq *= lacunarity;
-        amp *= persistence;
+    for (int i = 0; i < octaves; i++) {
         max += amp;
         total += glm::simplex(glm::vec3(x * freq, y * freq, z * freq)) * amp;
+        freq *= lacunarity;
+        amp *= persistence;
     }
     // Map from [-1, 1] to [0, 1]
     return powf((1 + total / max) / 2, redistribution);
