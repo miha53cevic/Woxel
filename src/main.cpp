@@ -1,7 +1,6 @@
 #include "app.h"
 #include "entity.h"
 #include "math.h"
-#include "cube.h"
 #include "world.h"
 
 class Woxel : public App
@@ -29,6 +28,33 @@ private:
             }
         }
 
+        // Right mouse click - add blocks
+        if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT)
+        {
+            if (lastRayPos.x != INFINITY)
+            {
+                glm::vec3 temp_ray = lastRayPos;
+                // Keep looping until we either find an AIR block or get out of bounds and get -1
+                while (chunk_manager.getBlockGlobal(temp_ray.x, temp_ray.y, temp_ray.z) != 0 &&
+                       chunk_manager.getBlockGlobal(temp_ray.x, temp_ray.y, temp_ray.z) != -1
+                    )
+                {
+                    temp_ray += lastUnitRay * 0.05f;
+                }
+
+                // We still have to check if we got -1(OutOfBounds) or 0(AIR)
+                if (chunk_manager.getBlockGlobal(temp_ray.x, temp_ray.y, temp_ray.z) == 0)
+                {
+                    // Set the block and update the chunk and it's neighbours
+                    chunk_manager.setBlockGlobal(temp_ray.x, temp_ray.y, temp_ray.z, 1);
+
+                    auto chunk = chunk_manager.getChunkFromGlobal(lastRayPos.x, lastRayPos.y, lastRayPos.z);
+                    chunk->Update();
+                    chunk->UpdateNeighbours();
+                }
+            }
+        }
+
         return true;
     }
     virtual bool Setup() override
@@ -37,20 +63,13 @@ private:
         Culling(true);
 
         // Set Sky colour
-        setClearColor(51, 76, 76, 255);
+        setClearColor(64, 191, 255, 255);
 
         shader.setAttribute(0, "position");
         shader.setAttribute(1, "textureCoords");
         shader.createProgram("resources/shaders/shader");
 
         shader.setUniformLocation("MVPMatrix");
-
-        // TODO - Remove cube, only used for testing
-        cube.texture.loadTexture("resources/textures/plank_draft.png");
-        cube.position = glm::vec3(-0.5f, -0.5f, -2);
-        cube.setEBO(Cube::indicies);
-        cube.setVBO(Cube::verticies, 0, 3);
-        cube.setVBO(Cube::textureCoords, 1, 2);
 
         chunk_manager.generateChunks(4, 4, 4);
         chunk_manager.generateTerrain(0.25f, 1, CHUNK_SIZE * 3);
@@ -79,18 +98,22 @@ private:
                 // Save the first blocks position that was hit and break out of the loop
                 lastRayPos = r;
 
+                // Save the unit vector of the ray as well
+                lastUnitRay.x = glm::cos(glm::radians(camera.getRotation().y + 90));
+                lastUnitRay.z = glm::sin(glm::radians(camera.getRotation().y + 90));
+                lastUnitRay.y = glm::tan(glm::radians(camera.getRotation().x));
+
                 createCubeOutline(r.x, r.y, r.z, 5);
                 break;
             }
             else lastRayPos = glm::vec3(INFINITY, 0, 0);
         }
 
-        RenderEntity(cube, shader);
-
         // Render chunks in the chunk_manager
         for (auto& i : chunk_manager.chunks)
             RenderChunk(i->chunk, shader);
 
+        // Render selected block outline
         RenderEntity(voxelOutline, outline, GL_LINES);
 
         return true;
@@ -107,7 +130,7 @@ private:
 
         s.loadMatrix(
             s.getUniformLocation("MVPMatrix"),
-            Math::createMVPMatrix(glm::vec2(ScreenWidth(), ScreenHeight()), 90, 0.1f, 100.0f, camera, e)
+            Math::createMVPMatrix(glm::vec2(ScreenWidth(), ScreenHeight()), 90, 0.1f, 1000.0f, camera, e)
         );
 
         e.VAO.Bind();
@@ -125,7 +148,7 @@ private:
 
         s.loadMatrix(
             s.getUniformLocation("MVPMatrix"),
-            Math::createMVPMatrix(glm::vec2(ScreenWidth(), ScreenHeight()), 90, 0.1f, 100.0f, camera, e)
+            Math::createMVPMatrix(glm::vec2(ScreenWidth(), ScreenHeight()), 90, 0.1f, 1000.0f, camera, e)
         );
 
         e.VAO.Bind();
@@ -179,11 +202,11 @@ private:
     }
 
 private:
-    Entity cube;
     gl::Shader shader;
     Camera camera;
     ChunkManager chunk_manager;
     glm::vec3 lastRayPos;
+    glm::vec3 lastUnitRay;
 
     Entity voxelOutline;
     gl::Shader outline;
