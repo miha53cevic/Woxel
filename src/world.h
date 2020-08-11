@@ -5,6 +5,7 @@
 #include "entity.h"
 
 #define CHUNK_SIZE 32
+#define WATER_LEVEL 4
 
 enum NEIGHBOUR
 {

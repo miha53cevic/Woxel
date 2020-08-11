@@ -16,7 +16,8 @@ public:
         LOG     = 4,
         LEAF    = 5,
         PLANKS  = 6,
-        WATER   = 7
+        WATER   = 7,
+        SAND    = 8
     };
 
     static std::vector<GLfloat> getTextureCoords(BLOCK id, Cube::CubeFace face, gl::TextureAtlas& atlas);

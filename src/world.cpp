@@ -384,63 +384,60 @@ void ChunkManager::generateFlatTerrain(int minAmp)
 
 void ChunkManager::generateTerrain(float freq, int minAmp, int maxAmp)
 {
-    // Go through every XZ chunk
-    for (int cx = 0; cx < chunkSize.x; cx++)
-        for (int cz = 0; cz < chunkSize.z; cz++)
-        {
-            // For every block in a chunk find it's height value using simplex noise
-            // and fill in the chunks to that height
-            for (int x = 0; x < CHUNK_SIZE; x++)
-                for (int z = 0; z < CHUNK_SIZE; z++)
+    auto createTerrain = [&](Chunk* chunk)
+    {
+        // Go through every block in the chunk
+        for (int x = 0; x < CHUNK_SIZE; x++)
+            for (int z = 0; z < CHUNK_SIZE; z++)
+            {
+                // Calculate the peaks
+                float posX = (chunk->chunk.position.x + x) / CHUNK_SIZE;
+                float posZ = (chunk->chunk.position.z + z) / CHUNK_SIZE;
+                int height = Math::simplex2(posX, posZ, freq, 4, 0.5f, 2.0f, 5.0f) * maxAmp + minAmp;
+
+                // Check if the height is valid
+                if (height > (CHUNK_SIZE * chunkSize.y))
+                    height = (CHUNK_SIZE * chunkSize.y);
+
+                // For every y block in the chunk set its layers
+                for (int y = 0; y < CHUNK_SIZE; y++)
                 {
-                    glm::vec2 chunkPosXZ = { cx * CHUNK_SIZE, cz * CHUNK_SIZE };
-                    float posX = (chunkPosXZ.x + x) / CHUNK_SIZE;
-                    float posZ = (chunkPosXZ.y + z) / CHUNK_SIZE;
+                    // Get the voxels global Y position
+                    int voxelY = chunk->chunk.position.y + y;
 
-                    int height = Math::simplex2(posX, posZ, freq, 4, 0.5f, 2.0f, 5.0f) * maxAmp + minAmp;
+                    /*
+                    *   First layer is grass
+                    *   the next 3 layers are dirt
+                    *   everything below that is stone
+                    *   Water spawns above the peaks(height) if they are below the
+                    *   given water_level threshold
+                    */ 
 
-                    // Check if the height is valid
-                    if (height > (CHUNK_SIZE * chunkSize.y))
-                        height = (CHUNK_SIZE * chunkSize.y);
-
-                    // chunkY - the chunk that has air blocks since it has the peaks or heights
-                    // heightLocal - is the local chunk block that would have the maximum height, it goes from [0, CHUNK_SIZE]
-                    int chunkY = height / CHUNK_SIZE;
-                    int heightLocal = height % CHUNK_SIZE;
-
-                    // IMPORTANT
-                    // ---------
-                    // It has to be <= because heightLocal can be 0 which makes the for loop not run
-                    // thus leaving empty spaces in the top chunk
-                    for (int y = 0; y <= heightLocal; y++)
+                    // If we went over the peaks any blocks above them are AIR
+                    // so if they are under the WATER_LEVEL we can place WATER BLOCK
+                    // there instead of AIR blocks
+                    if (voxelY > height)
                     {
-                        /*
-                        *   First layer is grass
-                        *   the next 2 layers are dirt
-                        *   everything below that is stone
-                        */
-                        if (y == heightLocal)
-                            chunks[IndexFrom3D(cx, chunkY, cz)]->setBlockLocal(x, y, z, Blocks::GRASS);
-                        else if (y == heightLocal - 1 || y == heightLocal - 2)
-                            chunks[IndexFrom3D(cx, chunkY, cz)]->setBlockLocal(x, y, z, Blocks::DIRT);
-                        else chunks[IndexFrom3D(cx, chunkY, cz)]->setBlockLocal(x, y, z, Blocks::STONE);
+                        if (voxelY < WATER_LEVEL)
+                            chunk->setBlockLocal(x, y, z, Blocks::WATER);
                     }
-
-                    // We still have to fill up any chunks that aren't the top ones because by default chunks
-                    // are filled with AIR blocks
-                    // We do this by first checking if the peak chunk has any chunks under it
-                    // Note: chunks go upwards in the positive y axis
-                    bool hasBelow = chunkY == 0 ? false : true;
-                    if (hasBelow)
+                    else if (voxelY == height)
                     {
-                        // Loop through every chunk under the peak chunk
-                        for (int i = 0; i < chunkY; i++)
-                            // Set every block for those chunks
-                            for (int h = 0; h < CHUNK_SIZE; h++)
-                                chunks[IndexFrom3D(cx, i, cz)]->setBlockLocal(x, h, z, Blocks::STONE);
+                        // Set SAND to spawn next to WATER
+                        if (voxelY < WATER_LEVEL + 3)
+                            chunk->setBlockLocal(x, y, z, Blocks::SAND);
+
+                        // Set the top block
+                        else chunk->setBlockLocal(x, y, z, Blocks::GRASS);    
                     }
+                    else if (voxelY < height && voxelY > height - 4) chunk->setBlockLocal(x, y, z, Blocks::DIRT);
+                    else if (voxelY < height) chunk->setBlockLocal(x, y, z, Blocks::STONE);
                 }
-        }
+            }
+    };
+
+    for (auto& chunk : chunks)
+        createTerrain(chunk.get());
 
     // Check note in generateFlatTerrain() function
     for (auto& chunk : chunks)
