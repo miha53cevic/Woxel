@@ -3,8 +3,6 @@
 #include "math.h"
 #include "world.h"
 
-#define PLAYER_HEIGHT 2
-
 class Woxel : public App
 {
 public:
@@ -84,6 +82,8 @@ private:
         outline.setUniformLocation("MVPMatrix");
 
         camera.updatePosition({ 5, CHUNK_SIZE * 2, 5 });
+
+        velocity = { 0, 0, 0 };
 
         return true;
     }
@@ -209,69 +209,98 @@ private:
     void CollisionMovement(float speed, float elapsed)
     {
         const float Offset = 0.25f;
+        const float Height = 1.35f;
 
+        glm::vec3 position = camera.getPosition();
         glm::vec3 rotation = camera.getRotation();
 
-        glm::vec3 movedPos = camera.getPosition();
         if (m_keys[SDL_SCANCODE_W])
         {
             // Calculate the directional vector and add it to camera position
-            movedPos.z -= speed * elapsed * cosf(glm::radians(-rotation.y));
-            movedPos.x -= speed * elapsed * sinf(glm::radians(-rotation.y));
+            velocity.z -= speed * elapsed * cosf(glm::radians(-rotation.y));
+            velocity.x -= speed * elapsed * sinf(glm::radians(-rotation.y));
         }
         if (m_keys[SDL_SCANCODE_S])
         {
-            movedPos.z += speed * elapsed * cosf(glm::radians(-rotation.y));
-            movedPos.x += speed * elapsed * sinf(glm::radians(-rotation.y));
+            velocity.z += speed * elapsed * cosf(glm::radians(-rotation.y));
+            velocity.x += speed * elapsed * sinf(glm::radians(-rotation.y));
         }
         if (m_keys[SDL_SCANCODE_D])
         {
-            movedPos.z -= speed * elapsed * sinf(glm::radians(-rotation.y));
-            movedPos.x += speed * elapsed * cosf(glm::radians(-rotation.y));
+            velocity.z -= speed * elapsed * sinf(glm::radians(-rotation.y));
+            velocity.x += speed * elapsed * cosf(glm::radians(-rotation.y));
         }
         if (m_keys[SDL_SCANCODE_A])
         {
-            movedPos.z += speed * elapsed * sinf(glm::radians(-rotation.y));
-            movedPos.x -= speed * elapsed * cosf(glm::radians(-rotation.y));
+            velocity.z += speed * elapsed * sinf(glm::radians(-rotation.y));
+            velocity.x -= speed * elapsed * cosf(glm::radians(-rotation.y));
         }
-
-        if (m_keys[SDL_SCANCODE_LCTRL])
-        {
-            movedPos.y -= speed * elapsed;
-        }
+        
         if (m_keys[SDL_SCANCODE_SPACE])
         {
-            movedPos.y += speed * elapsed;
+            // Only jump if the player donesn't have air blocks under him
+            if (chunk_manager.getBlockGlobal(position.x, position.y - Height - 1, position.z) > 0)
+                velocity.y = 10.0f * elapsed * Height;
         }
+
+        velocity.y -= 1.0f * elapsed;
 
         // Add extra offset to movedPos because the camera clips the faces otherwise
         // check if we need to add + or - offset depending on the direction we are moving to so (newPos - curPos)
-        glm::vec3 offset_movePos = movedPos;
+        glm::vec3 movedPos = velocity + position;
         if (movedPos.x - camera.getPosition().x < 0)
-            offset_movePos.x -= Offset;
+            movedPos.x -= Offset;
         else
-            offset_movePos.x += Offset;
+            movedPos.x += Offset;
 
         if (movedPos.y - camera.getPosition().y < 0)
-            offset_movePos.y -= Offset;
+            movedPos.y -= Offset;
         else
-            offset_movePos.y += Offset;
+            movedPos.y += Offset;
 
         if (movedPos.z - camera.getPosition().z < 0)
-            offset_movePos.z -= Offset;
+            movedPos.z -= Offset;
         else
-            offset_movePos.z += Offset;
+            movedPos.z += Offset;
 
-        if (chunk_manager.getBlockGlobal(offset_movePos.x, offset_movePos.y, offset_movePos.z) > 0 ||
-            chunk_manager.getBlockGlobal(offset_movePos.x, offset_movePos.y - (PLAYER_HEIGHT - 1), offset_movePos.z) > 0)
+        if (chunk_manager.getBlockGlobal(movedPos.x, movedPos.y, movedPos.z) >= 0)
         {
-            
+            // NOTE: The player is 2 blocks in height so we have to check 2 blocks for x, y, z
+
+            // X-Axis
+            // Check upper (camera) block
+            if (chunk_manager.getBlockGlobal(movedPos.x, position.y, position.z) != 0)
+                velocity.x = 0;
+            // Check lower block
+            if (chunk_manager.getBlockGlobal(movedPos.x, position.y - Height, position.z) != 0)
+                velocity.x = 0;
+
+            // Y-Axis
+            // Same thing, check the block under the player and above the player
+            if (chunk_manager.getBlockGlobal(position.x, movedPos.y - Height, position.z) != 0)
+                velocity.y = 0;
+            if (chunk_manager.getBlockGlobal(position.x, movedPos.y, position.z) != 0)
+                velocity.y = 0;
+
+            // Z-Axis
+            if (chunk_manager.getBlockGlobal(position.x, position.y, movedPos.z) != 0)
+                velocity.z = 0;
+            if (chunk_manager.getBlockGlobal(position.x, position.y - Height, movedPos.z) != 0)
+                velocity.z = 0;
+
         }
         // Keep the player inside of chunk borders by making sure he can only travel through air blocks
-        else if (chunk_manager.getBlockGlobal(offset_movePos.x, offset_movePos.y, offset_movePos.z) == 0)
+        else if (chunk_manager.getBlockGlobal(movedPos.x, movedPos.y, movedPos.z) == -1)
         {
-            camera.updatePosition(movedPos);
+            velocity = { 0, 0, 0 };
         }
+
+        // Update the position
+        camera.updatePosition(position + velocity);
+
+        // clear velocity after each update
+        velocity.x = 0;
+        velocity.z = 0;
         
     }
 
@@ -284,6 +313,8 @@ private:
 
     Entity voxelOutline;
     gl::Shader outline;
+
+    glm::vec3 velocity;
 };
 
 int main(int argc, char* argv[])
