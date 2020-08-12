@@ -3,6 +3,8 @@
 #include "math.h"
 #include "world.h"
 
+#define PLAYER_HEIGHT 2
+
 class Woxel : public App
 {
 public:
@@ -81,13 +83,16 @@ private:
 
         outline.setUniformLocation("MVPMatrix");
 
+        camera.updatePosition({ 5, CHUNK_SIZE * 2, 5 });
+
         return true;
     }
     virtual bool Loop(float elapsed) override
     {
         // Update camera position and rotation
         camera.Update(m_window, GetFocus());
-        camera.Movement(m_keys, elapsed);
+        //camera.Movement(m_keys, elapsed);
+        CollisionMovement(10, elapsed);
 
         // Ray casting
         for (Math::Ray ray(camera.getPosition(), camera.getRotation()); ray.getLength() < 6; ray.step(0.05f))
@@ -199,6 +204,75 @@ private:
         voxelOutline.setEBO(indic);
 
         glLineWidth(width);
+    }
+
+    void CollisionMovement(float speed, float elapsed)
+    {
+        const float Offset = 0.25f;
+
+        glm::vec3 rotation = camera.getRotation();
+
+        glm::vec3 movedPos = camera.getPosition();
+        if (m_keys[SDL_SCANCODE_W])
+        {
+            // Calculate the directional vector and add it to camera position
+            movedPos.z -= speed * elapsed * cosf(glm::radians(-rotation.y));
+            movedPos.x -= speed * elapsed * sinf(glm::radians(-rotation.y));
+        }
+        if (m_keys[SDL_SCANCODE_S])
+        {
+            movedPos.z += speed * elapsed * cosf(glm::radians(-rotation.y));
+            movedPos.x += speed * elapsed * sinf(glm::radians(-rotation.y));
+        }
+        if (m_keys[SDL_SCANCODE_D])
+        {
+            movedPos.z -= speed * elapsed * sinf(glm::radians(-rotation.y));
+            movedPos.x += speed * elapsed * cosf(glm::radians(-rotation.y));
+        }
+        if (m_keys[SDL_SCANCODE_A])
+        {
+            movedPos.z += speed * elapsed * sinf(glm::radians(-rotation.y));
+            movedPos.x -= speed * elapsed * cosf(glm::radians(-rotation.y));
+        }
+
+        if (m_keys[SDL_SCANCODE_LCTRL])
+        {
+            movedPos.y -= speed * elapsed;
+        }
+        if (m_keys[SDL_SCANCODE_SPACE])
+        {
+            movedPos.y += speed * elapsed;
+        }
+
+        // Add extra offset to movedPos because the camera clips the faces otherwise
+        // check if we need to add + or - offset depending on the direction we are moving to so (newPos - curPos)
+        glm::vec3 offset_movePos = movedPos;
+        if (movedPos.x - camera.getPosition().x < 0)
+            offset_movePos.x -= Offset;
+        else
+            offset_movePos.x += Offset;
+
+        if (movedPos.y - camera.getPosition().y < 0)
+            offset_movePos.y -= Offset;
+        else
+            offset_movePos.y += Offset;
+
+        if (movedPos.z - camera.getPosition().z < 0)
+            offset_movePos.z -= Offset;
+        else
+            offset_movePos.z += Offset;
+
+        if (chunk_manager.getBlockGlobal(offset_movePos.x, offset_movePos.y, offset_movePos.z) > 0 ||
+            chunk_manager.getBlockGlobal(offset_movePos.x, offset_movePos.y - (PLAYER_HEIGHT - 1), offset_movePos.z) > 0)
+        {
+            
+        }
+        // Keep the player inside of chunk borders by making sure he can only travel through air blocks
+        else if (chunk_manager.getBlockGlobal(offset_movePos.x, offset_movePos.y, offset_movePos.z) == 0)
+        {
+            camera.updatePosition(movedPos);
+        }
+        
     }
 
 private:
