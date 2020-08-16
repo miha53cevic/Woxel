@@ -79,7 +79,7 @@ void Chunk::generateTerrain(float freq,  int minAmp, int maxAmp)
             float posX = (chunk.position.x + x) / CHUNK_SIZE;
             float posZ = (chunk.position.z + z) / CHUNK_SIZE;
 
-            int height = Math::simplex2(posX, posZ, freq, 4, 0.5f, 2.0f, 1.0f) * maxAmp + minAmp;
+            int height = Math::simplex2(posX, posZ, freq, 1.0f) * maxAmp + minAmp;
 
             // Check if the height is valid
             if (height > CHUNK_SIZE)
@@ -369,7 +369,7 @@ void ChunkManager::generateTerrain(float freq, int minAmp, int maxAmp)
                 // Calculate the peaks
                 float posX = (chunk->chunk.position.x + x) / CHUNK_SIZE;
                 float posZ = (chunk->chunk.position.z + z) / CHUNK_SIZE;
-                int height = Math::simplex2(posX + seed, posZ + seed, freq, 4, 0.5f, 2.0f, 5.0f) * maxAmp + minAmp;
+                int height = Math::simplex2(posX + seed, posZ + seed, freq, 3.5f) * maxAmp + minAmp;
 
                 // Check if the height is valid
                 if (height > (CHUNK_SIZE * chunkSize.y))
@@ -400,7 +400,7 @@ void ChunkManager::generateTerrain(float freq, int minAmp, int maxAmp)
                     else if (voxelY == height)
                     {
                         // Set SAND to spawn next to WATER
-                        if (voxelY < WATER_LEVEL + 3)
+                        if (voxelY < WATER_LEVEL + 2)
                             chunk->setBlockLocal(x, y, z, Blocks::SAND);
 
                         // Set the top block

@@ -71,8 +71,8 @@ private:
 
         shader.setUniformLocation("MVPMatrix");
 
-        chunk_manager.generateChunks(4, 4, 4);
-        chunk_manager.generateTerrain(0.25f, 1, CHUNK_SIZE * 3);
+        chunk_manager.generateChunks(16, 4, 16);
+        chunk_manager.generateTerrain(0.25f, CHUNK_SIZE, CHUNK_SIZE * 3);
         //chunk_manager.generateFlatTerrain(CHUNK_SIZE + 2);
         printf("Created %d chunk(s)\n", chunk_manager.chunks.size());
 
@@ -81,7 +81,7 @@ private:
 
         outline.setUniformLocation("MVPMatrix");
 
-        camera.updatePosition({ 5, CHUNK_SIZE * 2, 5 });
+        camera.updatePosition({ 0, CHUNK_SIZE * 2, 0 });
 
         velocity = { 0, 0, 0 };
 
@@ -91,8 +91,8 @@ private:
     {
         // Update camera position and rotation
         camera.Update(m_window, GetFocus());
-        //camera.Movement(m_keys, elapsed);
-        CollisionMovement(10, elapsed);
+        camera.Movement(m_keys, elapsed);
+        //CollisionMovement(10, elapsed);
 
         // Ray casting
         for (Math::Ray ray(camera.getPosition(), camera.getRotation()); ray.getLength() < 6; ray.step(0.05f))
