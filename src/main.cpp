@@ -2,6 +2,7 @@
 #include "entity.h"
 #include "math.h"
 #include "world.h"
+#include "log.h"
 
 class Woxel : public App
 {
@@ -321,5 +322,8 @@ int main(int argc, char* argv[])
 {
     Woxel game("Woxel", 1280, 720);
     game.Run();
+
+    // Close logs.txt
+    LOG::get().close();
     return 0;
 }
