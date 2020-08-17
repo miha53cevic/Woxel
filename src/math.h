@@ -57,16 +57,6 @@ namespace Math
     // Maps values from one range to another
     float map(float s, float a1, float a2, float b1, float b2);
 
-    // Get 2D simplex noise
-    // - algorithm from: https://github.com/fogleman/Craft/blob/master/deps/noise/noise.c
-    // - octaves: how many times should you combine the noise
-    // - persistence: changes the height values (lower values add more height, higher values make the height deeper)
-    // - lacunarity: frequency of sample points (lower values adds noise closer, whilst higher values make the noise more distant)
-    float simplex2(float x, float y, float frequencies, float redistribution);
-
-    // Get 3D simplex noise
-    float simplex3(float x, float y, float z, float frequencies, float redistribution);
-
     // Ray class
     class Ray
     {
@@ -84,6 +74,20 @@ namespace Math
         glm::vec3 m_rayEnd;
         glm::vec3 m_direction;
     };
+};
+
+namespace Noise
+{
+    struct NoiseOptions
+    {
+        int octaves;
+        float frequency;
+        float roughness;
+        float redistribution;
+    };
+
+    float simplex2(float x, float y, NoiseOptions& options);
+    float simplex3(float x, float y, float z, NoiseOptions& options);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -23,7 +23,10 @@ Chunk::Chunk(glm::vec3 position, gl::TextureAtlas* atlas)
 void Chunk::setBlockLocal(int x, int y, int z, int blockid)
 {
     if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE)
+    {
+        printf("Set out of bounds block!\n");
         return;
+    }
     else
         m_blocks[x][y][z] = blockid;
 }
@@ -47,61 +50,6 @@ void Chunk::UpdateNeighbours()
     for (int i = 0; i < 6; i++)
         if (m_neighbours[i] != nullptr)
             m_neighbours[i]->Update();
-}
-
-// Unused function that is mean't for single chunks only
-void Chunk::generateFlat()
-{
-    for (int x = 0; x < CHUNK_SIZE; x++)
-        for (int y = 0; y < CHUNK_SIZE; y++)
-            for (int z = 0; z < CHUNK_SIZE; z++)
-            {
-                m_blocks[x][y][z] = 1;
-                if (y >= (CHUNK_SIZE / 2))
-                    m_blocks[x][y][z] = 0;
-            }
-}
-
-// Unused function that is mean't for single chunks only
-void Chunk::generateTerrain(float freq,  int minAmp, int maxAmp)
-{
-    // Set all blocks to air first
-    for (int x = 0; x < CHUNK_SIZE; x++)
-        for (int y = 0; y < CHUNK_SIZE; y++)
-            for (int z = 0; z < CHUNK_SIZE; z++)
-                m_blocks[x][y][z] = Blocks::AIR;
-
-    // Set up the terrain
-    for (int x = 0; x < CHUNK_SIZE; x++)
-        for (int z = 0; z < CHUNK_SIZE; z++)
-        {
-            // noise don't like int values as x and y so we change them from 0.0 - 1.0f
-            float posX = (chunk.position.x + x) / CHUNK_SIZE;
-            float posZ = (chunk.position.z + z) / CHUNK_SIZE;
-
-            int height = Math::simplex2(posX, posZ, freq, 1.0f) * maxAmp + minAmp;
-
-            // Check if the height is valid
-            if (height > CHUNK_SIZE)
-                height = CHUNK_SIZE;
-
-            for (int y = 0; y < height; y++)
-            {
-                /*
-                *   First layer is grass
-                *   the next 2 layers are dirt
-                *   everything below that is stone
-                */
-                if (y == height - 1)
-                    m_blocks[x][y][z] = Blocks::GRASS;
-                else if (y == height - 2 || y == height - 3)
-                    m_blocks[x][y][z] = Blocks::DIRT;
-                else m_blocks[x][y][z] = Blocks::STONE;
-
-                if (height <= 8 && height > 0)
-                    m_blocks[x][y][z] = Blocks::WATER;
-            }
-        }
 }
 
 void Chunk::setNeighbour(NEIGHBOUR n, Chunk * c)
@@ -358,7 +306,47 @@ void ChunkManager::generateFlatTerrain(int minAmp)
 
 void ChunkManager::generateTerrain(float freq, int minAmp, int maxAmp)
 {
+    auto createTree = [&](glm::vec3 location)
+    {
+        int treeHeight = Math::iRandom(4, 7);
+        for (int i = 0; i < treeHeight; i++)
+            setBlockGlobal(location.x, location.y + i, location.z, Blocks::LOG);
+
+        for (int x = -2; x <= 2; x++)
+            for (int y = -2; y < 1; y++)
+                for (int z = -2; z <= 2; z++)
+                {
+                    if (x == 0 && y < 0 && z == 0)
+                        continue;
+
+                    if (y == -1 && (abs(x) == 2 || abs(z) == 2))
+                        continue;
+
+                    if (y == 0 && (abs(x) >= 1 || abs(z) >= 1))
+                        continue;
+
+                    setBlockGlobal(location.x + x, location.y + y + treeHeight, location.z + z, Blocks::LEAF);
+                }
+
+        setBlockGlobal(location.x + 1, location.y + treeHeight, location.z + 0, Blocks::LEAF);
+        setBlockGlobal(location.x - 1, location.y + treeHeight, location.z + 0, Blocks::LEAF);
+        setBlockGlobal(location.x + 0, location.y + treeHeight, location.z + 1, Blocks::LEAF);
+        setBlockGlobal(location.x + 0, location.y + treeHeight, location.z - 1, Blocks::LEAF);
+    };
+
     int seed = Math::iRandom(0, 65536);
+
+    Noise::NoiseOptions firstNoise;
+    firstNoise.octaves = 6;
+    firstNoise.frequency = 0.25f;
+    firstNoise.roughness = 0.5f;
+    firstNoise.redistribution = 1.0f;
+
+    Noise::NoiseOptions secondNoise;
+    secondNoise.octaves = 4;
+    secondNoise.frequency = 0.1f;
+    secondNoise.roughness = 0.48f;
+    secondNoise.redistribution = 2.5f;
 
     auto createTerrain = [&](Chunk* chunk)
     {
@@ -369,7 +357,13 @@ void ChunkManager::generateTerrain(float freq, int minAmp, int maxAmp)
                 // Calculate the peaks
                 float posX = (chunk->chunk.position.x + x) / CHUNK_SIZE;
                 float posZ = (chunk->chunk.position.z + z) / CHUNK_SIZE;
-                int height = Math::simplex2(posX + seed, posZ + seed, freq, 3.5f) * maxAmp + minAmp;
+
+                // Combine 2 noise height maps for hilly and flat terrain combos
+                float noise1 = Noise::simplex2(posX + seed, posZ + seed, firstNoise);
+                float noise2 = Noise::simplex2(posX + seed, posZ + seed, secondNoise);
+                float result = noise1 * noise2;
+
+                int height = result * maxAmp + minAmp;
 
                 // Check if the height is valid
                 if (height > (CHUNK_SIZE * chunkSize.y))
@@ -400,11 +394,23 @@ void ChunkManager::generateTerrain(float freq, int minAmp, int maxAmp)
                     else if (voxelY == height)
                     {
                         // Set SAND to spawn next to WATER
-                        if (voxelY < WATER_LEVEL + 2)
+                        if (voxelY < WATER_LEVEL)
                             chunk->setBlockLocal(x, y, z, Blocks::SAND);
-
                         // Set the top block
-                        else chunk->setBlockLocal(x, y, z, Blocks::GRASS);    
+                        else
+                        {
+                            chunk->setBlockLocal(x, y, z, Blocks::GRASS);
+
+                            if (Math::fRandom(0, 1) >= 0.99f)
+                                if (x > 0 && x + 1 < CHUNK_SIZE && z > 0 && z + 1 < CHUNK_SIZE)
+                                {
+                                    glm::vec3 location;
+                                    location.x = chunk->chunk.position.x + x;
+                                    location.y = height;
+                                    location.z = chunk->chunk.position.z + z;
+                                    createTree(location);
+                                }
+                        }
                     }
                     else if (voxelY < height && voxelY > height - 4) chunk->setBlockLocal(x, y, z, Blocks::DIRT);
                     else if (voxelY < height) chunk->setBlockLocal(x, y, z, Blocks::STONE);

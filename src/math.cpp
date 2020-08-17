@@ -162,50 +162,6 @@ float Math::map(float s, float a1, float a2, float b1, float b2)
     return b1 + ((s - a1) * (b2 - b1)) / (a2 - a1);
 }
 
-// Check for explenation on different values
-// https://www.redblobgames.com/maps/terrain-from-noise/#elevation
-// The values in the tutorial above for persistence is 0.5 and lacunarity is 2
-// because he keeps divding the amplitude by 2 and increasing the frequency times 2
-// ----------------------------------------------------------------
-// Octaves     - how many times you combine the noise
-// Persistence - how amplitude changes with octaves
-// Lacunarity  - how frequencies change with octaves
-float Math::simplex2(float x, float y, float frequencies, float redistribution)
-{
-    const int octaves = 5;
-
-    float freq = frequencies;
-    float amp = 1.0f;
-    float max = 0.0f;
-    float total = 0;
-    for (int i = 0; i < octaves; i++) {
-        max += amp;
-        total += glm::simplex(glm::vec2(x * freq, y * freq)) * amp;
-        freq *= 2.0f;
-        amp *= 0.5f;
-    }
-    // Map from [-1, 1] to [0, 1]
-    return powf((1 + total / max) / 2, redistribution);
-}
-
-float Math::simplex3(float x, float y, float z, float frequencies, float redistribution)
-{
-    const int octaves = 5;
-
-    float freq = frequencies;
-    float amp = 1.0f;
-    float max = 0.0f;
-    float total = 0;
-    for (int i = 0; i < octaves; i++) {
-        max += amp;
-        total += glm::simplex(glm::vec3(x * freq, y * freq, z * freq)) * amp;
-        freq *= 2.0f;
-        amp *= 0.5f;
-    }
-    // Map from [-1, 1] to [0, 1]
-    return powf((1 + total / max) / 2, redistribution);
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Raycasting reference
@@ -243,6 +199,63 @@ const glm::vec3 & Math::Ray::getEnd() const
 float Math::Ray::getLength() const
 {
     return glm::distance(m_rayStart, m_rayEnd);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Check for explenation on different values
+// https://www.redblobgames.com/maps/terrain-from-noise/#elevation
+// The values in the tutorial above for rougness is 0.5 and smoothness is 2
+// because he keeps divding the amplitude by 2 and increasing the frequency times 2
+// ----------------------------------------------------------------
+// Octaves        - how many times you combine the noise
+// Frequency      - starting noise frequency (kod hopsonovog open buildera je to smoothness
+//                  i koristi se kao 1.0f/smoothness da se dobije isto starting freq)
+// Roughness      - determines the roughness of the noise usually left around 0.5f
+// Redistribution - binomna funkcija koja odreðuje padove i rastove, default je 1.0f
+float Noise::simplex2(float x, float y, NoiseOptions& options)
+{
+    float total = 0.0f;
+    float max   = 0.0f;
+
+    float freq = options.frequency;
+    float amp  = 1.0f;
+    for (int i = 0; i < options.octaves; i++)
+    {
+        float sx = x * freq;
+        float sy = y * freq;
+
+        total += glm::simplex(glm::vec2(sx, sy)) * amp;
+        max += amp; // used for converting to [0,1]
+
+        freq *= 2.0f;
+        amp  *= options.roughness;
+    }
+    // Map from [-1, 1] to [0, 1]
+    return powf((1 + (total / max)) / 2, options.redistribution);
+}
+
+float Noise::simplex3(float x, float y, float z, NoiseOptions & options)
+{
+    float total = 0.0f;
+    float max = 0.0f;
+
+    float freq = options.frequency;
+    float amp = 1.0f;
+    for (int i = 0; i < options.octaves; i++)
+    {
+        float sx = x * freq;
+        float sy = y * freq;
+        float sz = z * freq;
+
+        total += glm::simplex(glm::vec3(sx, sy, sz)) * amp;
+        max += amp; // used for converting to [0,1]
+
+        freq *= 2.0f;
+        amp *= options.roughness;
+    }
+    // Map from [-1, 1] to [0, 1]
+    return powf((1 + (total / max)) / 2, options.redistribution);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
