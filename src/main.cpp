@@ -6,6 +6,8 @@
 #include "blocks.h"
 #include "ui.h"
 
+#define toS(x) std::to_string(x)
+
 class Woxel : public App
 {
 public:
@@ -35,13 +37,25 @@ private:
                 if (chunk_manager.getBlockGlobal(temp_ray.x, temp_ray.y, temp_ray.z) == 0)
                 {
                     // Set the block and update the chunk and it's neighbours
-                    chunk_manager.setBlockGlobal(temp_ray.x, temp_ray.y, temp_ray.z, 1);
+                    chunk_manager.setBlockGlobal(temp_ray.x, temp_ray.y, temp_ray.z, hotbar[hotbar_selection]);
 
                     auto chunk = chunk_manager.getChunkFromGlobal(lastRayPos.x, lastRayPos.y, lastRayPos.z);
                     chunk->Update();
                     chunk->UpdateNeighbours();
                 }
             }
+        }
+
+        // Hotbar scrolling
+        if (e.type == SDL_MOUSEWHEEL)
+        {
+            if (e.wheel.y > 0)      hotbar_selection -= 1;
+            else if (e.wheel.y < 0) hotbar_selection += 1;
+
+            if (hotbar_selection < 0)       hotbar_selection = 4;
+            else if (hotbar_selection > 4)  hotbar_selection = 0;
+
+            uirenderer.setUI("hotbar_selection", { 480 + 64 * hotbar_selection, 624 }, { 64, 64 }, 0.0f);
         }
 
         return true;
@@ -51,8 +65,17 @@ private:
         // Enable back face CCW culling
         Culling(true);
 
+        ShowCursor(false);
+
         // Set Sky colour
         setClearColor(64, 191, 255, 255);
+
+        camera.setPosition({ 0, CHUNK_SIZE * 2, 0 });
+        velocity = { 0, 0, 0 };
+
+        // Initial hotbar items
+        for (int i = 0; i < 5; i++)
+            hotbar[i] = i + 1;
 
         shader.setAttribute(0, "position");
         shader.setAttribute(1, "textureCoords");
@@ -71,11 +94,30 @@ private:
 
         breakingCube.texture.loadTexture("resources/textures/textureAtlas.png");
 
-        camera.setPosition({ 0, CHUNK_SIZE * 2, 0 });
-        velocity = { 0, 0, 0 };
+        /*
+            Explanation
+            -----------
+            Blocks::Block enum class has blocks ordered with numbers going from 0 thus
+            we can just use those numbers as the identifier string for each ui block in the hotbar.
+            
+            P.S. toS is just a shortened version of std::to_string() function
+        */
+        uirenderer.addUI(toS(Blocks::DIRT),   "resources/textures/inventory/blocks/dirt.png"  );
+        uirenderer.addUI(toS(Blocks::GRASS),  "resources/textures/inventory/blocks/grass.png" );
+        uirenderer.addUI(toS(Blocks::LEAF),   "resources/textures/inventory/blocks/leaves.png");
+        uirenderer.addUI(toS(Blocks::LOG),    "resources/textures/inventory/blocks/log.png"   );
+        uirenderer.addUI(toS(Blocks::PLANKS), "resources/textures/inventory/blocks/plank.png" );
+        uirenderer.addUI(toS(Blocks::SAND),   "resources/textures/inventory/blocks/sand.png"  );
+        uirenderer.addUI(toS(Blocks::STONE),  "resources/textures/inventory/blocks/stone.png" );
 
-        uirenderer.addUI("hotbar", "resources/textures/hotbar.png");
-        uirenderer.setUI("hotbar", { 640-160, 720-96 }, { 320, 64 }, 0.0f);
+        uirenderer.addUI("hotbar_selection", "resources/textures/inventory/hotbar_selection.png");
+        uirenderer.setUI("hotbar_selection", { 480, 624 }, { 64, 64 }, 0.0f);
+
+        uirenderer.addUI("hotbar", "resources/textures/inventory/hotbar.png");
+        uirenderer.setUI("hotbar", { 480, 624 }, { 320, 64 }, 0.0f);
+
+        uirenderer.addUI("xhair", "resources/textures/xhair.png");
+        uirenderer.setUI("xhair", { ScreenWidth() / 2 - 8, ScreenHeight() / 2 - 8 }, { 16, 16 }, 0.0f);
 
         return true;
     }
@@ -117,7 +159,21 @@ private:
         breakBlockAction(elapsed);
 
         // Render the UI
+        uirenderer.DrawUI("xhair");
+
+        for (int i = 1; i < 8; i++)
+            uirenderer.DrawUI(toS(i));
+
+        uirenderer.DrawUI("hotbar_selection");
         uirenderer.DrawUI("hotbar");
+
+        // Setup hotbar icons
+        for (int i = 0; i < 5; i++)
+        {
+            uirenderer.setUI(toS((Blocks::BLOCK)hotbar[i]), { 488 + i * 64, 632 }, { 48, 48 }, 0.0f);
+        }
+
+        // TODO kada se doda premještanje prvo se mora provjeriti koja je kocka u hotbaru i napraviti hide te kocke u hotbaru ili inventoriju
 
         return true;
     }
@@ -437,6 +493,10 @@ private:
     glm::ivec3 breakingBlockPos;
 
     UIRenderer uirenderer;
+    int hotbar_selection = 0;
+
+    int hotbar[5];
+    int inventory[20];
 };
 
 int main(int argc, char* argv[])

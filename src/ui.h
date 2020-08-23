@@ -23,6 +23,9 @@ public:
     UI&  getUI(std::string ui_name);
 
     void DrawUI(std::string ui_name);
+    void DrawAllUI();
+
+    void HideUI(std::string ui_name);
 
 private:
     void prepRenderData();

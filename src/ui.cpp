@@ -90,6 +90,21 @@ void UIRenderer::DrawUI(std::string ui_name)
     else printf("UI element %s does not exist!\n", ui_name.c_str());
 }
 
+void UIRenderer::DrawAllUI()
+{
+    for (auto& ui : m_uiElements)
+    {
+        // Only draw ui that has a size
+        if (ui.second.size.x > 0 && ui.second.size.y > 0)
+            DrawUI(ui.first);
+    }
+}
+
+void UIRenderer::HideUI(std::string ui_name)
+{
+    m_uiElements[ui_name].size = { 0, 0 };
+}
+
 void UIRenderer::prepRenderData()
 {
     std::vector<float> verticies = {

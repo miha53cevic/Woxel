@@ -138,6 +138,11 @@ void App::Culling(bool cull)
     else      glDisable(GL_CULL_FACE);
 }
 
+void App::ShowCursor(bool cursor)
+{
+    SDL_ShowCursor(cursor);
+}
+
 /**
  *  Used as a mask when testing buttons in buttonstate.
  *   - SDL_BUTTON_LEFT    Left mouse button
