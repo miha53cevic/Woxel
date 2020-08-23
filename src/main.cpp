@@ -4,12 +4,14 @@
 #include "world.h"
 #include "cube.h"
 #include "blocks.h"
+#include "ui.h"
 
 class Woxel : public App
 {
 public:
     Woxel(const char* title, int width, int height)
         : App(title, width, height)
+        , uirenderer({width, height}, "resources/textures/hotbar.png")
     {}
 
 private:
@@ -72,14 +74,17 @@ private:
         camera.setPosition({ 0, CHUNK_SIZE * 2, 0 });
         velocity = { 0, 0, 0 };
 
+        uirenderer.addUI("hotbar", "resources/textures/hotbar.png");
+        uirenderer.setUI("hotbar", { 640-160, 720-96 }, { 320, 64 }, 0.0f);
+
         return true;
     }
     virtual bool Loop(float elapsed) override
     {
         // Update camera position and rotation
         camera.Update(m_window, GetFocus());
-        //camera.Movement(m_keys, elapsed);
-        CollisionMovement(10, elapsed);
+        camera.Movement(m_keys, elapsed);
+        //CollisionMovement(10, elapsed);
 
         // Ray casting
         for (Math::Ray ray(camera.getPosition(), camera.getRotation()); ray.getLength() < 6; ray.step(0.05f))
@@ -110,6 +115,9 @@ private:
 
         // Check for block breaking
         breakBlockAction(elapsed);
+
+        // Render the UI
+        uirenderer.DrawUI("hotbar");
 
         return true;
     }
@@ -425,9 +433,10 @@ private:
     glm::vec3 velocity;
 
     float totalTime;
-
     Entity breakingCube;
     glm::ivec3 breakingBlockPos;
+
+    UIRenderer uirenderer;
 };
 
 int main(int argc, char* argv[])
