@@ -62,6 +62,8 @@ protected:
     void WireFrame(bool wireframe);
     void VSync(bool vsync);
     void Culling(bool cull);
+
+    bool MouseHold(int key);
 };
 
 #endif

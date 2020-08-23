@@ -52,3 +52,29 @@ std::vector<GLfloat> Blocks::getTextureCoords(BLOCK id, Cube::CubeFace face, gl:
 
     return atlas.getTextureCoords(coords);
 }
+
+float Blocks::getBreakTime(BLOCK block)
+{
+    switch (block)
+    {
+    case DIRT:
+    case SAND:
+    case GRASS:
+        return 2.0f;
+        break;
+
+    case STONE:
+        return 5.0f;
+        break;
+
+    case LEAF:
+        return 1.5f;
+        break;
+
+    case LOG:
+        return 3.0f;
+        break;
+    }
+
+    return 0.0f;
+}

@@ -2,7 +2,8 @@
 #include "entity.h"
 #include "math.h"
 #include "world.h"
-#include "log.h"
+#include "cube.h"
+#include "blocks.h"
 
 class Woxel : public App
 {
@@ -14,21 +15,6 @@ public:
 private:
     virtual bool Event(SDL_Event& e) override
     {
-        // Left mouse click - destroy blocks
-        if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT)
-        {
-            // If the ray doesn't hit a block the X part gets set to INFINITY
-            if (lastRayPos.x != INFINITY)
-            {
-                // Set the block to air if it's destroyed
-                chunk_manager.setBlockGlobal(lastRayPos.x, lastRayPos.y, lastRayPos.z, 0);
-                // Update the chunk mesh and the surrounding neighbours as well
-                auto chunk = chunk_manager.getChunkFromGlobal(lastRayPos.x, lastRayPos.y, lastRayPos.z);
-                chunk->Update();
-                chunk->UpdateNeighbours();
-            }
-        }
-
         // Right mouse click - add blocks
         if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT)
         {
@@ -73,8 +59,7 @@ private:
         shader.setUniformLocation("MVPMatrix");
 
         chunk_manager.generateChunks(16, 4, 16);
-        chunk_manager.generateTerrain(0.25f, CHUNK_SIZE, CHUNK_SIZE * 3);
-        //chunk_manager.generateFlatTerrain(CHUNK_SIZE + 2);
+        chunk_manager.generateTerrain(CHUNK_SIZE, CHUNK_SIZE * 3);
         printf("Created %d chunk(s)\n", chunk_manager.chunks.size());
 
         outline.setAttribute(0, "position");
@@ -82,8 +67,9 @@ private:
 
         outline.setUniformLocation("MVPMatrix");
 
-        camera.updatePosition({ 0, CHUNK_SIZE * 2, 0 });
+        breakingCube.texture.loadTexture("resources/textures/textureAtlas.png");
 
+        camera.setPosition({ 0, CHUNK_SIZE * 2, 0 });
         velocity = { 0, 0, 0 };
 
         return true;
@@ -92,8 +78,8 @@ private:
     {
         // Update camera position and rotation
         camera.Update(m_window, GetFocus());
-        camera.Movement(m_keys, elapsed);
-        //CollisionMovement(10, elapsed);
+        //camera.Movement(m_keys, elapsed);
+        CollisionMovement(10, elapsed);
 
         // Ray casting
         for (Math::Ray ray(camera.getPosition(), camera.getRotation()); ray.getLength() < 6; ray.step(0.05f))
@@ -121,6 +107,9 @@ private:
 
         // Render selected block outline
         RenderEntity(voxelOutline, outline, GL_LINES);
+
+        // Check for block breaking
+        breakBlockAction(elapsed);
 
         return true;
     }
@@ -200,11 +189,129 @@ private:
         };
 
         // Set VBO creates a new VBO where update just changes the data
-        if (voxelOutline.VBOs.empty()) voxelOutline.setVBO(vert, 0, 3);
-        else                           voxelOutline.updateVBO(0, vert, 0, 3);
-        voxelOutline.setEBO(indic);
+        if (voxelOutline.VBOs.empty())
+        {
+            voxelOutline.setVBO(vert, 0, 3);
+            voxelOutline.setEBO(indic);
+        }
+        else voxelOutline.updateVBO(0, vert, 0, 3);
 
         glLineWidth(width);
+    }
+
+    void createBreakingAnimation(glm::ivec2 breakAnimTexCoords)
+    {
+        // Cube is 1*1*1 - int space
+        int x = lastRayPos.x;
+        int y = lastRayPos.y;
+        int z = lastRayPos.z;
+
+        // Setup for 6 faces
+        std::vector<float> texCoords;
+        for (int i = 0; i < 6; i++)
+        {
+            auto temp = chunk_manager.atlas.getTextureCoords(breakAnimTexCoords);
+            texCoords.insert(texCoords.end(), temp.begin(), temp.end());
+        }
+
+        if (breakingCube.VBOs.empty())
+        {
+            // Koliko je kocka veæa od druge
+            const float offset = 0.05f;
+            const std::vector<GLfloat> verticies = {
+                // Back face
+                1+offset,1+offset,0-offset,
+                1+offset,0-offset,0-offset,
+                0-offset,0-offset,0-offset,
+                0-offset,1+offset,0-offset,
+
+                // Front face
+                0-offset,1+offset,1+offset,
+                0-offset,0-offset,1+offset,
+                1+offset,0-offset,1+offset,
+                1+offset,1+offset,1+offset,
+
+                // Right face
+                1+offset,1+offset,1+offset,
+                1+offset,0-offset,1+offset,
+                1+offset,0-offset,0-offset,
+                1+offset,1+offset,0-offset,
+
+                // Left Face
+                0-offset,1+offset,0-offset,
+                0-offset,0-offset,0-offset,
+                0-offset,0-offset,1+offset,
+                0-offset,1+offset,1+offset,
+
+                // Top face
+                0-offset,1+offset,1+offset,
+                1+offset,1+offset,1+offset,
+                1+offset,1+offset,0-offset,
+                0-offset,1+offset,0-offset,
+
+                // Bottom face
+                0-offset,0-offset,1+offset,
+                0-offset,0-offset,0-offset,
+                1+offset,0-offset,0-offset,
+                1+offset,0-offset,1+offset
+            };
+
+            // Load data
+            breakingCube.setVBO(verticies, 0, 3);
+            breakingCube.setVBO(texCoords, 1, 2);
+            breakingCube.setEBO(Cube::indicies);
+        }
+        else breakingCube.updateVBO(1, texCoords, 1, 2);
+
+        // Translate
+        breakingCube.position = glm::vec3(x, y, z);
+
+         // Render
+        RenderEntity(breakingCube, shader, GL_TRIANGLES);
+    }
+    void breakBlockAction(float elapsed)
+    {
+
+        // Break a block
+        if (MouseHold(SDL_BUTTON_LEFT))
+        {
+            // Player changed of the block that was being broken so reset timer
+            if (breakingBlockPos != glm::ivec3(lastRayPos))
+                totalTime = 0.0f;
+
+            breakingBlockPos = glm::ivec3(lastRayPos);
+
+            // Get breaking time based on the block that we are breaking
+            int block = chunk_manager.getBlockGlobal(breakingBlockPos.x, breakingBlockPos.y, breakingBlockPos.z);
+            const float breakTime = Blocks::getBreakTime((Blocks::BLOCK)block);
+
+            // Wait for a certain amount of time and then break the block
+            if (totalTime >= breakTime)
+            {
+                // If the ray doesn't hit a block the X part gets set to INFINITY
+                if (lastRayPos.x != INFINITY)
+                {
+                    // Set the block to air if it's destroyed
+                    chunk_manager.setBlockGlobal(lastRayPos.x, lastRayPos.y, lastRayPos.z, 0);
+                    // Update the chunk mesh and the surrounding neighbours as well
+                    auto chunk = chunk_manager.getChunkFromGlobal(lastRayPos.x, lastRayPos.y, lastRayPos.z);
+                    chunk->Update();
+                    chunk->UpdateNeighbours();
+
+                    // Reset totalTime
+                    totalTime = 0.0f;
+                }
+            }
+
+            // Cycle animation stages
+            if (totalTime >= breakTime / 1.10f)         createBreakingAnimation({ 2, 7 });
+            else if (totalTime >= breakTime / 2.0f)     createBreakingAnimation({ 1, 7 });
+            else if (totalTime >= 0.25f)                createBreakingAnimation({ 0, 7 });
+
+            // Add to timer deltaTime
+            totalTime += elapsed;
+        }
+        else totalTime = 0.0f; // if left is not held keep totalTime at 0
     }
 
     void CollisionMovement(float speed, float elapsed)
@@ -297,7 +404,7 @@ private:
         }
 
         // Update the position
-        camera.updatePosition(position + velocity);
+        camera.setPosition(position + velocity);
 
         // clear velocity after each update
         velocity.x = 0;
@@ -316,14 +423,16 @@ private:
     gl::Shader outline;
 
     glm::vec3 velocity;
+
+    float totalTime;
+
+    Entity breakingCube;
+    glm::ivec3 breakingBlockPos;
 };
 
 int main(int argc, char* argv[])
 {
     Woxel game("Woxel", 1280, 720);
     game.Run();
-
-    // Close logs.txt
-    LOG::get().close();
     return 0;
 }

@@ -21,6 +21,8 @@ public:
     };
 
     static std::vector<GLfloat> getTextureCoords(BLOCK id, Cube::CubeFace face, gl::TextureAtlas& atlas);
+
+    static float getBreakTime(BLOCK block);
 };
 
 #endif

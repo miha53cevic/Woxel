@@ -28,9 +28,6 @@ public:
     void Update();
     void UpdateNeighbours();
 
-    void generateFlat();
-    void generateTerrain(float freq, int minAmp, int maxAmp);
-
     void setNeighbour(NEIGHBOUR n, Chunk* c);
 
     Entity chunk;
@@ -61,7 +58,7 @@ public:
     Chunk* getChunkFromGlobal(int x, int y, int z);
 
     void generateFlatTerrain(int minAmp);
-    void generateTerrain(float freq, int minAmp, int maxAmp);
+    void generateTerrain(int minAmp, int maxAmp);
 
     gl::TextureAtlas atlas;
 

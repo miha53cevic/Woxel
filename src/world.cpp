@@ -24,7 +24,9 @@ void Chunk::setBlockLocal(int x, int y, int z, int blockid)
 {
     if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE)
     {
-        printf("Set out of bounds block!\n");
+        #ifdef DEBUG
+            printf("Set out of bounds block!\n");
+        #endif
         return;
     }
     else
@@ -304,7 +306,7 @@ void ChunkManager::generateFlatTerrain(int minAmp)
         chunk->Update();
 }
 
-void ChunkManager::generateTerrain(float freq, int minAmp, int maxAmp)
+void ChunkManager::generateTerrain(int minAmp, int maxAmp)
 {
     auto createTree = [&](glm::vec3 location)
     {

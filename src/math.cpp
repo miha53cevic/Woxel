@@ -86,12 +86,12 @@ glm::vec3 Camera::getRotation()
     return m_rotation;
 }
 
-void Camera::updatePosition(glm::vec3 position)
+void Camera::setPosition(glm::vec3 position)
 {
     m_position = position;
 }
 
-void Camera::updateRotation(glm::vec3 rotation)
+void Camera::setRotation(glm::vec3 rotation)
 {
     m_rotation = rotation;
 }

@@ -138,6 +138,19 @@ void App::Culling(bool cull)
     else      glDisable(GL_CULL_FACE);
 }
 
+/**
+ *  Used as a mask when testing buttons in buttonstate.
+ *   - SDL_BUTTON_LEFT    Left mouse button
+ *   - SDL_BUTTON_MIDDLE  Middle mouse button
+ *   - SDL_BUTTON_RIGHT   Right mouse button
+ */
+bool App::MouseHold(int key)
+{
+    int x, y;
+    return SDL_GetMouseState(&x, &y) == SDL_BUTTON(key);
+    return false;
+}
+
 void App::sdl_die(const char * message)
 {
     printf("%s: %s\n", message, SDL_GetError());
