@@ -7,13 +7,14 @@
 #include "ui.h"
 
 #define toS(x) std::to_string(x)
+#define HOTBAR_SIZE 7
 
 class Woxel : public App
 {
 public:
     Woxel(const char* title, int width, int height)
         : App(title, width, height)
-        , uirenderer({width, height}, "resources/textures/hotbar.png")
+        , uirenderer({width, height})
     {}
 
 private:
@@ -40,7 +41,7 @@ private:
                     chunk_manager.setBlockGlobal(temp_ray.x, temp_ray.y, temp_ray.z, hotbar[hotbar_selection]);
 
                     auto chunk = chunk_manager.getChunkFromGlobal(lastRayPos.x, lastRayPos.y, lastRayPos.z);
-                    chunk->Update();
+                    chunk->Update(); // regenerate chunk mesh
                     chunk->UpdateNeighbours();
                 }
             }
@@ -49,13 +50,29 @@ private:
         // Hotbar scrolling
         if (e.type == SDL_MOUSEWHEEL)
         {
+            // +y mouse wheel up and -y mousewheel down
             if (e.wheel.y > 0)      hotbar_selection -= 1;
             else if (e.wheel.y < 0) hotbar_selection += 1;
 
-            if (hotbar_selection < 0)       hotbar_selection = 4;
-            else if (hotbar_selection > 4)  hotbar_selection = 0;
+            if (hotbar_selection < 0)                       hotbar_selection = (HOTBAR_SIZE - 1);
+            else if (hotbar_selection > (HOTBAR_SIZE - 1))  hotbar_selection = 0;
 
-            uirenderer.setUI("hotbar_selection", { 480 + 64 * hotbar_selection, 624 }, { 64, 64 }, 0.0f);
+            uirenderer.setUI("hotbar_selection", { 416 + hotbar_selection * 64, 624 }, { 64, 64 }, 0.0f);
+        }
+
+        // Wireframe mode
+        if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_TAB)
+        {
+            bWireframe = !bWireframe;
+            WireFrame(bWireframe);
+        }
+
+        // Enter & Exit Creative Mode
+        if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_C)
+        {
+            bCreativeMode = !bCreativeMode;
+            if (bCreativeMode) printf("Enabled Creative Mode!\n");
+            else               printf("Disabled Creative Mode!\n");
         }
 
         return true;
@@ -70,11 +87,12 @@ private:
         // Set Sky colour
         setClearColor(64, 191, 255, 255);
 
-        camera.setPosition({ 0, CHUNK_SIZE * 2, 0 });
+        // Initial player position is in the middle of the map
+        camera.setPosition({ 8* CHUNK_SIZE, CHUNK_SIZE * 2, 8 * CHUNK_SIZE });
         velocity = { 0, 0, 0 };
 
         // Initial hotbar items
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < HOTBAR_SIZE; i++)
             hotbar[i] = i + 1;
 
         shader.setAttribute(0, "position");
@@ -83,6 +101,7 @@ private:
 
         shader.setUniformLocation("MVPMatrix");
 
+        // Create chunks
         chunk_manager.generateChunks(16, 4, 16);
         chunk_manager.generateTerrain(CHUNK_SIZE, CHUNK_SIZE * 3);
         printf("Created %d chunk(s)\n", chunk_manager.chunks.size());
@@ -111,13 +130,13 @@ private:
         uirenderer.addUI(toS(Blocks::STONE),  "resources/textures/inventory/blocks/stone.png" );
 
         uirenderer.addUI("hotbar_selection", "resources/textures/inventory/hotbar_selection.png");
-        uirenderer.setUI("hotbar_selection", { 480, 624 }, { 64, 64 }, 0.0f);
+        uirenderer.setUI("hotbar_selection", { 416, 624 }, { 64, 64 }, 0.0f);
 
         uirenderer.addUI("hotbar", "resources/textures/inventory/hotbar.png");
-        uirenderer.setUI("hotbar", { 480, 624 }, { 320, 64 }, 0.0f);
+        uirenderer.setUI("hotbar", { 416, 624 }, { 448, 64 }, 0.0f);
 
         uirenderer.addUI("xhair", "resources/textures/xhair.png");
-        uirenderer.setUI("xhair", { ScreenWidth() / 2 - 8, ScreenHeight() / 2 - 8 }, { 16, 16 }, 0.0f);
+        uirenderer.setUI("xhair", { 632, ScreenHeight() / 2 - 8 }, { 16, 16 }, 0.0f);
 
         return true;
     }
@@ -125,8 +144,9 @@ private:
     {
         // Update camera position and rotation
         camera.Update(m_window, GetFocus());
-        camera.Movement(m_keys, elapsed);
-        //CollisionMovement(10, elapsed);
+
+        if (bCreativeMode) camera.Movement(m_keys, elapsed);
+        else if (!bCreativeMode) CollisionMovement(10, elapsed);
 
         // Ray casting
         for (Math::Ray ray(camera.getPosition(), camera.getRotation()); ray.getLength() < 6; ray.step(0.05f))
@@ -137,7 +157,7 @@ private:
                 // Save the first blocks position that was hit and break out of the loop
                 lastRayPos = r;
 
-                // Save the unit vector of the ray as well
+                // Save the unit vector of the ray as well (check Ray code for formula)
                 lastUnitRay.x = glm::cos(glm::radians(camera.getRotation().y + 90));
                 lastUnitRay.z = glm::sin(glm::radians(camera.getRotation().y + 90));
                 lastUnitRay.y = glm::tan(glm::radians(camera.getRotation().x));
@@ -160,20 +180,19 @@ private:
 
         // Render the UI
         uirenderer.DrawUI("xhair");
-
+        // Render inventory icons
         for (int i = 1; i < 8; i++)
             uirenderer.DrawUI(toS(i));
 
+        // Render hotbar and the hotbar selection (white hotbar square)
         uirenderer.DrawUI("hotbar_selection");
         uirenderer.DrawUI("hotbar");
 
         // Setup hotbar icons
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < HOTBAR_SIZE; i++)
         {
-            uirenderer.setUI(toS((Blocks::BLOCK)hotbar[i]), { 488 + i * 64, 632 }, { 48, 48 }, 0.0f);
+            uirenderer.setUI(toS((Blocks::BLOCK)hotbar[i]), { 424 + i * 64, 632 }, { 48, 48 }, 0.0f);
         }
-
-        // TODO kada se doda premještanje prvo se mora provjeriti koja je kocka u hotbaru i napraviti hide te kocke u hotbaru ili inventoriju
 
         return true;
     }
@@ -203,6 +222,7 @@ private:
     {
         s.Bind();
 
+        // All chunks use the same texture atlas
         chunk_manager.atlas.texture.activateAndBind();
 
         s.loadMatrix(
@@ -495,8 +515,10 @@ private:
     UIRenderer uirenderer;
     int hotbar_selection = 0;
 
-    int hotbar[5];
-    int inventory[20];
+    int hotbar[7];
+
+    bool bWireframe    = false;
+    bool bCreativeMode = false;
 };
 
 int main(int argc, char* argv[])

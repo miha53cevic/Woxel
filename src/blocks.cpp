@@ -72,6 +72,7 @@ float Blocks::getBreakTime(BLOCK block)
         break;
 
     case LOG:
+    case PLANKS:
         return 3.0f;
         break;
     }

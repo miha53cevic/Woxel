@@ -1,7 +1,7 @@
 #include "ui.h"
 #include <glm/gtc/matrix_transform.hpp>
 
-UIRenderer::UIRenderer(glm::ivec2 screenSize, std::string texturePath)
+UIRenderer::UIRenderer(glm::ivec2 screenSize)
     : m_screenSize(screenSize)
 {
     prepRenderData();

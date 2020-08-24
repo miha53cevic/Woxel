@@ -16,7 +16,7 @@ struct UI
 class UIRenderer
 {
 public:
-    UIRenderer(glm::ivec2 screenSize, std::string texturePath);
+    UIRenderer(glm::ivec2 screenSize);
 
     void addUI(std::string ui_name, std::string texturePath);
     void setUI(std::string ui_name, glm::vec2 position, glm::vec2 size, float rotation);
