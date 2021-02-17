@@ -4,6 +4,7 @@
 #include "gl/glObjects.h"
 #include <string>
 #include <map>
+#include <memory>
 
 struct UI
 {

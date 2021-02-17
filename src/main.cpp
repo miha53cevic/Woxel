@@ -300,7 +300,7 @@ private:
 
         if (breakingCube.VBOs.empty())
         {
-            // Koliko je kocka veæa od druge
+            // Koliko je kocka veï¿½a od druge
             const float offset = 0.05f;
             const std::vector<GLfloat> verticies = {
                 // Back face
