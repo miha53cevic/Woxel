@@ -1,5 +1,5 @@
-INCLUDES = -I"C:/Mihael/libs/sdl2/include" -I"./deps"
-LIBS_PATH = -L"C:/Mihael/libs/sdl2/lib"
+INCLUDES = -I"./deps/sdl2/include" -I"./deps"
+LIBS_PATH = -L"./deps/sdl2/lib"
 LIBS = -lSDL2main -lSDL2
 
 CXX = g++
