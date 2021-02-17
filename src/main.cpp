@@ -9,8 +9,12 @@
 #define toS(x) std::to_string(x)
 
 #define HOTBAR_SIZE 7
+
 #define WORLD_SIZE_X 8
+#define WORLD_SIZE_Y 4
 #define WORLD_SIZE_Z 8
+
+#define PLAYER_SPEED 10
 
 class Woxel : public App
 {
@@ -18,7 +22,10 @@ public:
     Woxel(const char* title, int width, int height)
         : App(title, width, height)
         , uirenderer({width, height})
-    {}
+    {
+        // Initial player velocity
+        velocity = {0, 0, 0};
+    }
 
 private:
     virtual bool Event(SDL_Event& e) override
@@ -84,36 +91,35 @@ private:
         // Enable back face CCW culling
         Culling(true);
 
+        VSync(true);
+
         ShowCursor(false);
 
         // Set Sky colour
         setClearColor(64, 191, 255, 255);
 
         // Initial player position is in the middle of the map
-        camera.setPosition({ 8* CHUNK_SIZE, CHUNK_SIZE * 2, 8 * CHUNK_SIZE });
-        velocity = { 0, 0, 0 };
-
-        // Initial hotbar items
-        for (int i = 0; i < HOTBAR_SIZE; i++)
-            hotbar[i] = i + 1;
+        camera.setPosition({ (WORLD_SIZE_X / 2) * CHUNK_SIZE, CHUNK_SIZE * (WORLD_SIZE_Y / 2), (WORLD_SIZE_Z / 2) * CHUNK_SIZE });
 
         shader.setAttribute(0, "position");
         shader.setAttribute(1, "textureCoords");
         shader.createProgram("resources/shaders/shader");
-
         shader.setUniformLocation("MVPMatrix");
 
         // Create chunks
-        chunk_manager.generateChunks(16, 4, 16);
-        chunk_manager.generateTerrain(CHUNK_SIZE, CHUNK_SIZE * 3);
+        chunk_manager.generateChunks(WORLD_SIZE_X, WORLD_SIZE_Y, WORLD_SIZE_Z);
+        chunk_manager.generateTerrain(CHUNK_SIZE, CHUNK_SIZE * (WORLD_SIZE_Y - 1));
         printf("Created %d chunk(s)\n", chunk_manager.chunks.size());
 
         outline.setAttribute(0, "position");
         outline.createProgram("resources/shaders/outline_shader");
-
         outline.setUniformLocation("MVPMatrix");
 
         breakingCube.texture.loadTexture("resources/textures/textureAtlas.png");
+
+        // Initial hotbar items (BLOCK IDs)
+        for (int i = 0; i < HOTBAR_SIZE; i++)
+            hotbar[i] = i + 1;
 
         /*
             Explanation
@@ -148,7 +154,7 @@ private:
         camera.Update(m_window, GetFocus());
 
         if (bCreativeMode) camera.Movement(m_keys, elapsed);
-        else if (!bCreativeMode) CollisionMovement(10, elapsed);
+        else if (!bCreativeMode) CollisionMovement(PLAYER_SPEED, elapsed);
 
         // Ray casting
         for (Math::Ray ray(camera.getPosition(), camera.getRotation()); ray.getLength() < 6; ray.step(0.05f))
@@ -285,6 +291,19 @@ private:
         glLineWidth(width);
     }
 
+    void destroyBlockInView()
+    {
+        // If the ray doesn't hit a block the X part gets set to INFINITY
+        if (lastRayPos.x != INFINITY)
+        {
+            // Set the block to air if it's destroyed
+            chunk_manager.setBlockGlobal(lastRayPos.x, lastRayPos.y, lastRayPos.z, (int)Blocks::AIR);
+            // Update the chunk mesh and the surrounding neighbours as well
+            auto chunk = chunk_manager.getChunkFromGlobal(lastRayPos.x, lastRayPos.y, lastRayPos.z);
+            chunk->UpdateAfterChange();
+        }
+    }
+
     void createBreakingAnimation(glm::ivec2 breakAnimTexCoords)
     {
         // Cube is 1*1*1 - int space
@@ -357,44 +376,40 @@ private:
     }
     void breakBlockAction(float elapsed)
     {
-
         // Break a block
         if (MouseHold(SDL_BUTTON_LEFT))
         {
-            // Player changed of the block that was being broken so reset timer
-            if (breakingBlockPos != glm::ivec3(lastRayPos))
-                totalTime = 0.0f;
-
-            breakingBlockPos = glm::ivec3(lastRayPos);
-
-            // Get breaking time based on the block that we are breaking
-            int block = chunk_manager.getBlockGlobal(breakingBlockPos.x, breakingBlockPos.y, breakingBlockPos.z);
-            const float breakTime = Blocks::getBreakTime((Blocks::BLOCK)block);
-
-            // Wait for a certain amount of time and then break the block
-            if (totalTime >= breakTime)
+            // In creative mode insta destroy otherwise use time depending on
+            if (!bCreativeMode)
             {
-                // If the ray doesn't hit a block the X part gets set to INFINITY
-                if (lastRayPos.x != INFINITY)
+                // Player changed of the block that was being broken so reset timer
+                if (breakingBlockPos != glm::ivec3(lastRayPos))
+                    totalTime = 0.0f;
+
+                breakingBlockPos = glm::ivec3(lastRayPos);
+
+                // Get breaking time based on the block that we are breaking
+                int block = chunk_manager.getBlockGlobal(breakingBlockPos.x, breakingBlockPos.y, breakingBlockPos.z);
+                const float breakTime = Blocks::getBreakTime((Blocks::BLOCK)block);
+
+                // Wait for a certain amount of time and then break the block
+                if (totalTime >= breakTime)
                 {
-                    // Set the block to air if it's destroyed
-                    chunk_manager.setBlockGlobal(lastRayPos.x, lastRayPos.y, lastRayPos.z, 0);
-                    // Update the chunk mesh and the surrounding neighbours as well
-                    auto chunk = chunk_manager.getChunkFromGlobal(lastRayPos.x, lastRayPos.y, lastRayPos.z);
-                    chunk->UpdateAfterChange();
+                    destroyBlockInView();
 
                     // Reset totalTime
                     totalTime = 0.0f;
                 }
+
+                // Cycle animation stages
+                if (totalTime >= breakTime / 1.10f)         createBreakingAnimation({ 2, 7 });
+                else if (totalTime >= breakTime / 2.0f)     createBreakingAnimation({ 1, 7 });
+                else if (totalTime >= 0.25f)                createBreakingAnimation({ 0, 7 });
+
+                // Add to timer deltaTime
+                totalTime += elapsed;
             }
-
-            // Cycle animation stages
-            if (totalTime >= breakTime / 1.10f)         createBreakingAnimation({ 2, 7 });
-            else if (totalTime >= breakTime / 2.0f)     createBreakingAnimation({ 1, 7 });
-            else if (totalTime >= 0.25f)                createBreakingAnimation({ 0, 7 });
-
-            // Add to timer deltaTime
-            totalTime += elapsed;
+            else if (bCreativeMode) destroyBlockInView();
         }
         else totalTime = 0.0f; // if left is not held keep totalTime at 0
     }

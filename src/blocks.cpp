@@ -1,5 +1,8 @@
 #include "blocks.h"
 
+/**
+ * Desc. Returns the texture coordinates of a given blocks face
+*/
 std::vector<GLfloat> Blocks::getTextureCoords(BLOCK id, Cube::CubeFace face, gl::TextureAtlas& atlas)
 {
     glm::ivec2 coords;

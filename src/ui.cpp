@@ -55,8 +55,8 @@ UI & UIRenderer::getUI(std::string ui_name)
     else
     {
         printf("UI element %s does not exist!\n", ui_name.c_str());
-        UI temp;
-        return temp;
+        UI* temp = nullptr;
+        return *temp;
     }
 }
 

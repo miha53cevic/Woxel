@@ -12,4 +12,6 @@ Woxel: $(obj)
 		mkdir -p build
 		cp -r resources/ build/
 		$(CXX) $(CXXFLAGS) -o build/$@ $^ $(LIBS_PATH) $(LIBS)
-		rm -f $(obj)
+
+.Phony clean:
+	rm -f $(obj)
