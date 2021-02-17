@@ -7,7 +7,10 @@
 #include "ui.h"
 
 #define toS(x) std::to_string(x)
+
 #define HOTBAR_SIZE 7
+#define WORLD_SIZE_X 8
+#define WORLD_SIZE_Z 8
 
 class Woxel : public App
 {
@@ -35,14 +38,13 @@ private:
                 }
 
                 // We still have to check if we got -1(OutOfBounds) or 0(AIR)
-                if (chunk_manager.getBlockGlobal(temp_ray.x, temp_ray.y, temp_ray.z) == 0)
+                if (chunk_manager.getBlockGlobal(temp_ray.x, temp_ray.y, temp_ray.z) == (int)Blocks::AIR)
                 {
                     // Set the block and update the chunk and it's neighbours
                     chunk_manager.setBlockGlobal(temp_ray.x, temp_ray.y, temp_ray.z, hotbar[hotbar_selection]);
 
                     auto chunk = chunk_manager.getChunkFromGlobal(lastRayPos.x, lastRayPos.y, lastRayPos.z);
-                    chunk->Update(); // regenerate chunk mesh
-                    chunk->UpdateNeighbours();
+                    chunk->UpdateAfterChange();
                 }
             }
         }
@@ -379,8 +381,7 @@ private:
                     chunk_manager.setBlockGlobal(lastRayPos.x, lastRayPos.y, lastRayPos.z, 0);
                     // Update the chunk mesh and the surrounding neighbours as well
                     auto chunk = chunk_manager.getChunkFromGlobal(lastRayPos.x, lastRayPos.y, lastRayPos.z);
-                    chunk->Update();
-                    chunk->UpdateNeighbours();
+                    chunk->UpdateAfterChange();
 
                     // Reset totalTime
                     totalTime = 0.0f;

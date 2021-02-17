@@ -27,6 +27,7 @@ public:
 
     void Update();
     void UpdateNeighbours();
+    void UpdateAfterChange();
 
     void setNeighbour(NEIGHBOUR n, Chunk* c);
 
@@ -37,6 +38,8 @@ private:
     Chunk* m_neighbours[6];
 
     void generateMesh();
+
+    bool BlockOutOfBounds(int x, int y, int z);
 
     gl::TextureAtlas* m_atlas;
 };

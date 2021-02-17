@@ -20,9 +20,14 @@ Chunk::Chunk(glm::vec3 position, gl::TextureAtlas* atlas)
                 m_blocks[x][y][z] = Blocks::AIR;
 }
 
+/**
+ * Desc. Sets a chunks block within chunk coordinates
+ * 
+ * Note. In case of Out of bound nothing is changed
+*/
 void Chunk::setBlockLocal(int x, int y, int z, int blockid)
 {
-    if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE)
+    if (BlockOutOfBounds(x, y, z))
     {
         #ifdef DEBUG
             printf("Set out of bounds block!\n");
@@ -33,19 +38,30 @@ void Chunk::setBlockLocal(int x, int y, int z, int blockid)
         m_blocks[x][y][z] = blockid;
 }
 
+/**
+ * Desc. Gets a chunks block within chunk coordinates
+ * 
+ * Note. In case of out of bound -1 is returned which is not a valid block
+*/
 int Chunk::getBlockLocal(int x, int y, int z)
 {
-    if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE)
+    if (BlockOutOfBounds(x, y, z))
         return -1;
     else
         return m_blocks[x][y][z];
 }
 
+/**
+ * Desc. Generates the chunk mesh
+*/
 void Chunk::Update()
 {
     generateMesh();
 }
 
+/**
+ * Desc. Update the neighbouring chunks meshes
+*/
 void Chunk::UpdateNeighbours()
 {
     // Update all of the neighbours
@@ -54,11 +70,29 @@ void Chunk::UpdateNeighbours()
             m_neighbours[i]->Update();
 }
 
+/**
+ *  Desc. Recreate the chunk mesh and the chunks neighbours meshes
+*/
+void Chunk::UpdateAfterChange()
+{
+    generateMesh();
+    UpdateNeighbours();
+}
+
+/**
+ * Desc. Set a chunks neighbour
+*/
 void Chunk::setNeighbour(NEIGHBOUR n, Chunk * c)
 {
     m_neighbours[n] = c;
 }
 
+/**
+ * Desc. Generate chunk mesh
+ * 
+ * Note. Only faces that can bee seen (blocks that have AIR block neighbours)
+ *       are rendered
+*/
 void Chunk::generateMesh()
 {
     std::vector<GLfloat> temp_verticies;
@@ -70,6 +104,7 @@ void Chunk::generateMesh()
     {
         auto face = Cube::getCubeFace(cubeface);
 
+        // To place every coordinate(vector3f) into a 1D array each coordinate is pushed 3 times
         for (int i = 0; i < (int)face.verticies.size() / 3; i++)
         {
             temp_verticies.push_back(face.verticies[0 + i * 3] + x);
@@ -78,8 +113,10 @@ void Chunk::generateMesh()
         }
 
         auto texCoords = Blocks::getTextureCoords((Blocks::BLOCK)m_blocks[x][y][z], cubeface, *m_atlas);
-        temp_textureCoords.insert(temp_textureCoords.end(), texCoords.begin(), texCoords.end());
+        temp_textureCoords.insert(temp_textureCoords.end(), texCoords.begin(), texCoords.end()); // push new coordinates to the end of the vector
         
+        // Each face is made out of 2 triangles and each 
+        // triangle needs 3 points thus we need to use 4 indicies in 6 ways
         temp_indicies.push_back(indicies + 0);
         temp_indicies.push_back(indicies + 1);
         temp_indicies.push_back(indicies + 3);
@@ -93,6 +130,7 @@ void Chunk::generateMesh()
         for (int y = 0; y < CHUNK_SIZE; y++)
             for (int z = 0; z < CHUNK_SIZE; z++)
             {
+                // Used later to check if blocks are on the edge of a chunk or not
                 bool left = false, right = false, front = false, back = false, top = false, bottom = false;
                 if (x != 0) left = true;
                 if (y != 0) bottom = true;
@@ -101,48 +139,61 @@ void Chunk::generateMesh()
                 if (y != CHUNK_SIZE - 1) top = true;
                 if (z != CHUNK_SIZE - 1) front = true;
 
-                if (m_blocks[x][y][z] == 0)
+                // An AIR block will never have any faces drawn so skip it
+                if (m_blocks[x][y][z] == (int)Blocks::AIR)
                     continue;
 
+                // If the block is not on the left corner of the chunk (left means it has a left neighbour for example) 
+                // and if its block on the left is an AIR block create a left face
                 if (left)
-                    if (m_blocks[x - 1][y][z] == 0) createFace(Cube::CubeFace::LEFT, x, y, z);
+                    if (m_blocks[x - 1][y][z] == (int)Blocks::AIR) createFace(Cube::CubeFace::LEFT, x, y, z);
                 if (right)
-                    if (m_blocks[x + 1][y][z] == 0) createFace(Cube::CubeFace::RIGHT, x, y, z);
+                    if (m_blocks[x + 1][y][z] == (int)Blocks::AIR) createFace(Cube::CubeFace::RIGHT, x, y, z);
                 if (bottom)
-                    if (m_blocks[x][y - 1][z] == 0) createFace(Cube::CubeFace::BOTTOM, x, y, z);
+                    if (m_blocks[x][y - 1][z] == (int)Blocks::AIR) createFace(Cube::CubeFace::BOTTOM, x, y, z);
                 if (top)
-                    if (m_blocks[x][y + 1][z] == 0) createFace(Cube::CubeFace::TOP, x, y, z);
+                    if (m_blocks[x][y + 1][z] == (int)Blocks::AIR) createFace(Cube::CubeFace::TOP, x, y, z);
                 if (back)
-                    if (m_blocks[x][y][z - 1] == 0) createFace(Cube::CubeFace::BACK, x, y, z);
+                    if (m_blocks[x][y][z - 1] == (int)Blocks::AIR) createFace(Cube::CubeFace::BACK, x, y, z);
                 if (front)
-                    if (m_blocks[x][y][z + 1] == 0) createFace(Cube::CubeFace::FRONT, x, y, z);
+                    if (m_blocks[x][y][z + 1] == (int)Blocks::AIR) createFace(Cube::CubeFace::FRONT, x, y, z);
 
 
                 // Check 1 block width with neighbouring chunks for only the outer chunk blocks
-                // Primjer:
+                // Example:
                 // ---------
-                // - Ako gledamo recimo lijevi/WEST neighbour onda gledamo sa krajnom kockom tog
-                // - susjednog chunka, a ako recimo gledamo desno/EAST onda trebamo provjeriti s
-                // - prvom ili nultom kockom tog susjednog chunka
+                // - If we are looking at the left/west neigbour then we check with the last block of the neighbouring chunk
+                // - but if we are looking at the right/east then we have to check with the first or 0th block of the neighbour
                 //
-                // - !left i drugi znaèi da su to vanjske kocke chunka tj. da nemaju susjeda na toj strani
+                // - !left and the others mean that those are corner blocks
                 if (!left && m_neighbours[EAST] != nullptr)
-                    if (m_neighbours[EAST]->getBlockLocal(CHUNK_SIZE - 1, y, z) == 0) createFace(Cube::CubeFace::LEFT, x, y, z);
+                    if (m_neighbours[EAST]->getBlockLocal(CHUNK_SIZE - 1, y, z) == (int)Blocks::AIR) 
+                        createFace(Cube::CubeFace::LEFT, x, y, z);
+
                 if (!right && m_neighbours[WEST] != nullptr)
-                    if (m_neighbours[WEST]->getBlockLocal(0, y, z) == 0) createFace(Cube::CubeFace::RIGHT, x, y, z);
+                    if (m_neighbours[WEST]->getBlockLocal(0, y, z) == 0) 
+                        createFace(Cube::CubeFace::RIGHT, x, y, z);
+
                 if (!bottom && m_neighbours[BELOW] != nullptr)
-                    if (m_neighbours[BELOW]->getBlockLocal(x, CHUNK_SIZE - 1, z) == 0) createFace(Cube::CubeFace::BOTTOM, x, y, z);
+                    if (m_neighbours[BELOW]->getBlockLocal(x, CHUNK_SIZE - 1, z) == (int)Blocks::AIR) 
+                    createFace(Cube::CubeFace::BOTTOM, x, y, z);
+
                 if (!top && m_neighbours[ABOVE] != nullptr)
-                    if (m_neighbours[ABOVE]->getBlockLocal(x, 0, z) == 0) createFace(Cube::CubeFace::TOP, x, y, z);
+                    if (m_neighbours[ABOVE]->getBlockLocal(x, 0, z) == (int)Blocks::AIR) 
+                        createFace(Cube::CubeFace::TOP, x, y, z);
+
                 if (!back && m_neighbours[NORTH] != nullptr)
-                    if (m_neighbours[NORTH]->getBlockLocal(x, y, CHUNK_SIZE - 1) == 0) createFace(Cube::CubeFace::BACK, x, y, z);
+                    if (m_neighbours[NORTH]->getBlockLocal(x, y, CHUNK_SIZE - 1) == (int)Blocks::AIR) 
+                        createFace(Cube::CubeFace::BACK, x, y, z);
+
                 if (!front && m_neighbours[SOUTH] != nullptr)
-                    if (m_neighbours[SOUTH]->getBlockLocal(x, y, 0) == 0) createFace(Cube::CubeFace::FRONT, x, y, z);
+                    if (m_neighbours[SOUTH]->getBlockLocal(x, y, 0) == (int)Blocks::AIR) 
+                        createFace(Cube::CubeFace::FRONT, x, y, z);
             }
 
     // Set VBO adds a new VBO to the entity
     // so we have to use update which just changes the data.
-    // We still have to initially set them though
+    // We still have to initially set them though :/
     if (chunk.VBOs.empty())
     {
         chunk.setVBO(temp_verticies, 0, 3);
@@ -161,6 +212,13 @@ void Chunk::generateMesh()
 #endif
 }
 
+bool Chunk::BlockOutOfBounds(int x, int y, int z)
+{
+    if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE)
+        return true;
+    else return false;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 ChunkManager::ChunkManager()
@@ -168,6 +226,9 @@ ChunkManager::ChunkManager()
 {
 }
 
+/**
+ * Desc. Generate the given amount of chunks in WIDTH HEIGHT LENGTH
+*/
 void ChunkManager::generateChunks(int x, int y, int z)
 {
     chunkSize = glm::vec3(x, y, z);
@@ -178,7 +239,6 @@ void ChunkManager::generateChunks(int x, int y, int z)
             for (int sz = 0; sz < z; sz++)
             {
                 auto temp = std::make_unique<Chunk>(glm::vec3(sx * CHUNK_SIZE, sy * CHUNK_SIZE, sz * CHUNK_SIZE), &atlas);
-                //temp->chunk.texture.loadTexture("resources/textures/textureAtlas.png");
                 chunks.push_back(std::move(temp));
             }
 
@@ -212,6 +272,11 @@ void ChunkManager::generateChunks(int x, int y, int z)
             }
 }
 
+/**
+ * Desc. Get a block from a chunk in global(world) coordinates
+ * 
+ * Note. In case of out of bound function returns -1
+*/
 int ChunkManager::getBlockGlobal(int x, int y, int z)
 {
     // Get the chunk from global block position
@@ -230,6 +295,11 @@ int ChunkManager::getBlockGlobal(int x, int y, int z)
     return chunks.at(IndexFrom3D(cx, cy, cz))->getBlockLocal(lx, ly, lz);
 }
 
+/**
+ * Desc. Set a chunks block from global(world) coordinates
+ * 
+ * Note. In case of out of bound function changes nothing
+*/
 void ChunkManager::setBlockGlobal(int x, int y, int z, int blockid)
 {
     // Get the chunk from global block position
@@ -248,6 +318,11 @@ void ChunkManager::setBlockGlobal(int x, int y, int z, int blockid)
     chunks.at(IndexFrom3D(cx, cy, cz))->setBlockLocal(lx, ly, lz, blockid);
 }
 
+/**
+ * Returns a pointer to the chunk in the given global(world) coordinate
+ * 
+ * Note. In case of out of bound function returns nullptr
+*/
 Chunk* ChunkManager::getChunkFromGlobal(int x, int y, int z)
 {
     // Get the chunk from global block position
@@ -261,6 +336,9 @@ Chunk* ChunkManager::getChunkFromGlobal(int x, int y, int z)
     return chunks[IndexFrom3D(cx, cy, cz)].get();
 }
 
+/**
+ * Generates a flat terrain
+*/
 void ChunkManager::generateFlatTerrain(int minAmp)
 {
     auto createTerrain = [&](Chunk* chunk)
@@ -299,13 +377,16 @@ void ChunkManager::generateFlatTerrain(int minAmp)
     *   - 1. chunk gets it's blocks set and since the other chunks blocks haven't been set and by default
     *   - a multi dimensional array has a default value of 0 it sees that it should make a wall with the other
     *   - chunks even though they haven't been setup properly yet.
-    *   - This is also why generateChunkMesh isn't called in the chunk->generateTerrain functions since it needs to be called
+    *   - This is also why generateChunkMesh(chunk->Update()) isn't called in the chunk->generateTerrain functions since it needs to be called
     *   - after every chunk has had it's blocks set up.
     */
     for (auto& chunk : chunks)
         chunk->Update();
 }
 
+/** 
+ * Desc. Generates a terrain using simplex noise
+*/
 void ChunkManager::generateTerrain(int minAmp, int maxAmp)
 {
     auto createTree = [&](glm::vec3 location)
@@ -402,7 +483,7 @@ void ChunkManager::generateTerrain(int minAmp, int maxAmp)
                         else
                         {
                             chunk->setBlockLocal(x, y, z, Blocks::GRASS);
-
+                            // Generate trees on the top block randomly
                             if (Math::fRandom(0, 1) >= 0.99f)
                                 if (x > 0 && x + 1 < CHUNK_SIZE && z > 0 && z + 1 < CHUNK_SIZE)
                                 {
@@ -428,12 +509,18 @@ void ChunkManager::generateTerrain(int minAmp, int maxAmp)
         chunk->Update();
 }
 
+/**
+ * Desc. Converts a 3D coordinate into 1D
+*/
 int ChunkManager::IndexFrom3D(int x, int y, int z)
 {
     // Index = ((x * YSIZE + y) * ZSIZE) + z;
     return ((x * chunkSize.y + y) * chunkSize.z) + z;
 }
 
+/** 
+ * Desc. Check if a chunk is out of bound
+*/
 bool ChunkManager::ChunkOutOfBounds(int x, int y, int z)
 {
     if (x < 0 || x >= chunkSize.x || y < 0 || y >= chunkSize.y || z < 0 || z >= chunkSize.z)
