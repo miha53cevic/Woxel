@@ -7,8 +7,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "glm/gtc/noise.hpp"
 
-#include <random>
-
 #ifdef _WIN32
 #include <SDL.h>
 #elif __linux__

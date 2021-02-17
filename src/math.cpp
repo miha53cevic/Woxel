@@ -141,20 +141,12 @@ glm::mat4x4 Math::createMVPMatrix(glm::vec2 screenSize, float FOV, float NEAR_PL
 
 float Math::fRandom(float first, float second)
 {
-    std::random_device rd;
-    std::default_random_engine generator(rd()); // rd() provides a random seed
-    std::uniform_real_distribution<float> distribution(first, second);
-
-    return distribution(generator);
+    return (float)rand() / RAND_MAX * (second - first) + first;
 }
 
 int Math::iRandom(int first, int second)
 {
-    std::random_device rd;
-    std::default_random_engine generator(rd()); // rd() provides a random seed
-    std::uniform_int_distribution<int> distribution(first, second);
-
-    return distribution(generator);
+    return rand() % (second - first + 1) + first;
 }
 
 float Math::map(float s, float a1, float a2, float b1, float b2)
@@ -212,7 +204,7 @@ float Math::Ray::getLength() const
 // Frequency      - starting noise frequency (kod hopsonovog open buildera je to smoothness
 //                  i koristi se kao 1.0f/smoothness da se dobije isto starting freq)
 // Roughness      - determines the roughness of the noise usually left around 0.5f
-// Redistribution - binomna funkcija koja odreðuje padove i rastove, default je 1.0f
+// Redistribution - binomna funkcija koja odreï¿½uje padove i rastove, default je 1.0f
 float Noise::simplex2(float x, float y, NoiseOptions& options)
 {
     float total = 0.0f;

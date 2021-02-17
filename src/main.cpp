@@ -6,6 +6,8 @@
 #include "blocks.h"
 #include "ui.h"
 
+#include <ctime>
+
 #define toS(x) std::to_string(x)
 
 #define HOTBAR_SIZE 7
@@ -539,6 +541,9 @@ private:
 
 int main(int argc, char* argv[])
 {
+    // Seed generator
+    srand(time(nullptr));
+
     Woxel game("Woxel", 1280, 720);
     game.Run();
     return 0;
