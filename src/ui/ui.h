@@ -1,7 +1,7 @@
 #ifndef UI_H
 #define UI_H
 #include <glm/glm.hpp>
-#include "gl/glObjects.h"
+#include "../gl/glObjects.h"
 #include <string>
 #include <map>
 

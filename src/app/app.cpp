@@ -12,7 +12,7 @@ Clock::Clock()
 float Clock::restart()
 {
     m_end = SDL_GetTicks();
-    float elapsed = (m_end - m_start) / 1000.0;
+    float elapsed = (m_end - m_start) / 1000.0f;
     m_start = m_end;
     return elapsed;
 }
@@ -103,6 +103,11 @@ int App::ScreenHeight()
     return m_screenHeight;
 }
 
+SDL_Window * App::GetWindow()
+{
+    return m_window;
+}
+
 bool App::GetFocus()
 {
     return m_bFocus;
@@ -111,6 +116,11 @@ bool App::GetFocus()
 Uint8 App::GetKey(SDL_Scancode code)
 {
     return m_keys[code];
+}
+
+const Uint8 * App::GetKeys()
+{
+    return m_keys;
 }
 
 void App::FPSCounter(bool fpscounter)
@@ -203,7 +213,7 @@ void App::init_screen(const char * title)
     glEnable(GL_DEPTH_TEST);
 }
 
-void App::setClearColor(int r, int g, int b, int a)
+void App::ClearColor(int r, int g, int b, int a)
 {
     float _r = r / 255.0f;
     float _g = g / 255.0f;

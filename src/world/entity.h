@@ -1,6 +1,6 @@
 #ifndef ENTITY_H
 #define ENTITY_H
-#include "gl/glObjects.h"
+#include "../gl/glObjects.h"
 #include <memory>
 
 class Camera;

@@ -1,12 +1,14 @@
-#ifndef BLOCKS_H
-#define BLOCKS_H
+#pragma once
 
-#include "gl/glObjects.h"
-#include "cube.h"
+#include "../gl/glObjects.h"
+#include "../util/cube.h"
 
 class Blocks
 {
 public:
+    // Singleton class can't be instantiated
+    Blocks() = delete;
+
     enum BLOCK
     {
         AIR     = 0,
@@ -24,5 +26,3 @@ public:
 
     static float getBreakTime(BLOCK block);
 };
-
-#endif

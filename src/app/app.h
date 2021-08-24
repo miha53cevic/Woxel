@@ -1,5 +1,4 @@
-#ifndef APP_H
-#define APP_H
+#pragma once
 
 #ifdef _WIN32
 #include <SDL.h>
@@ -30,6 +29,26 @@ public:
 
     void Run();
 
+public:
+    void ClearColor(int r, int g, int b, int a);
+
+    int ScreenWidth();
+    int ScreenHeight();
+
+    SDL_Window* GetWindow();
+
+    bool GetFocus();
+    Uint8 GetKey(SDL_Scancode code);
+    const Uint8* GetKeys();
+
+    void FPSCounter(bool fpscounter);
+    void WireFrame(bool wireframe);
+    void VSync(bool vsync);
+    void Culling(bool cull);
+    void ShowCursor(bool cursor);
+
+    bool MouseHold(int key);
+
 protected:
     SDL_Window* m_window;
     SDL_GLContext m_maincontext;
@@ -49,22 +68,4 @@ protected:
     virtual bool Event(SDL_Event& e) = 0;
     virtual bool Setup() = 0;
     virtual bool Loop(float elapsedTime) = 0;
-
-    void setClearColor(int r, int g, int b, int a);
-
-    int ScreenWidth();
-    int ScreenHeight();
-
-    bool GetFocus();
-    Uint8 GetKey(SDL_Scancode code);
-
-    void FPSCounter(bool fpscounter);
-    void WireFrame(bool wireframe);
-    void VSync(bool vsync);
-    void Culling(bool cull);
-    void ShowCursor(bool cursor);
-
-    bool MouseHold(int key);
 };
-
-#endif
