@@ -1,12 +1,19 @@
 #include "player.h"
 
-
-
-player::player()
+Player::Player(World * world)
+    : m_world(world)
 {
 }
 
+void Player::Update(float elapsed)
+{
+    
+}
 
-player::~player()
+void Player::CollisionMovement(const Uint8 * keys, float elapsed, float speed)
+{
+}
+
+void Player::Movement(const Uint8 * keys, float elapsed, float speed)
 {
 }
