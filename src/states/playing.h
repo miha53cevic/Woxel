@@ -10,12 +10,10 @@
 #include "../player/camera.h"
 #include "../world/chunkmanager.h"
 
-class App;
-
 class Playing : public State
 {
 public:
-    Playing(App* app);
+    Playing();
 
     virtual void Event(SDL_Event& e) override;
     virtual void Setup() override;

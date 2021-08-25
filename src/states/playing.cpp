@@ -7,9 +7,8 @@
 #define HOTBAR_SIZE 7
 #define CHUNK_SIZE 32
 
-Playing::Playing(App * app)
-    : State(app)
-    , uirenderer({ app->ScreenWidth(), app->ScreenHeight() })
+Playing::Playing()
+    : uirenderer({ App::ScreenWidth(), App::ScreenHeight() })
 {
 }
 
@@ -59,7 +58,7 @@ void Playing::Event(SDL_Event & e)
     if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_TAB)
     {
         bWireframe = !bWireframe;
-        m_app->WireFrame(bWireframe);
+        App::WireFrame(bWireframe);
     }
 
     // Enter & Exit Creative Mode
@@ -74,12 +73,12 @@ void Playing::Event(SDL_Event & e)
 void Playing::Setup()
 {
     // Enable back face CCW culling
-    m_app->Culling(true);
+    App::Culling(true);
 
-    m_app->ShowCursor(false);
+    App::ShowCursor(false);
 
     // Set Sky colour
-    m_app->ClearColor(64, 191, 255, 255);
+    App::ClearColor(64, 191, 255, 255);
 
     // Initial player position is in the middle of the map
     camera.setPosition({ 8 * CHUNK_SIZE, CHUNK_SIZE * 2, 8 * CHUNK_SIZE });
@@ -130,15 +129,15 @@ void Playing::Setup()
     uirenderer.setUI("hotbar", { 416, 624 }, { 448, 64 }, 0.0f);
 
     uirenderer.addUI("xhair", "resources/textures/xhair.png");
-    uirenderer.setUI("xhair", { 632, m_app->ScreenHeight() / 2 - 8 }, { 16, 16 }, 0.0f);
+    uirenderer.setUI("xhair", { 632, App::ScreenHeight() / 2 - 8 }, { 16, 16 }, 0.0f);
 }
 
 void Playing::Loop(float elapsed)
 {
     // Update camera position and rotation
-    camera.Update(m_app->GetWindow(), m_app->GetFocus());
+    camera.Update(App::GetWindow(), App::GetFocus());
 
-    if (bCreativeMode) camera.Movement(m_app->GetKeys(), elapsed);
+    if (bCreativeMode) camera.Movement(App::GetKeys(), elapsed);
     else if (!bCreativeMode) CollisionMovement(10, elapsed);
 
     // Ray casting
@@ -206,7 +205,7 @@ void Playing::RenderEntity(Entity & e, gl::Shader & s, GLenum mode)
 
     s.loadMatrix(
         s.getUniformLocation("MVPMatrix"),
-        Math::createMVPMatrix(glm::vec2(m_app->ScreenWidth(), m_app->ScreenHeight()), 90, 0.1f, 1000.0f, camera, e)
+        Math::createMVPMatrix(glm::vec2(App::ScreenWidth(), App::ScreenHeight()), 90, 0.1f, 1000.0f, camera, e)
     );
 
     e.VAO.Bind();
@@ -225,7 +224,7 @@ void Playing::RenderChunk(Entity & e, gl::Shader & s)
 
     s.loadMatrix(
         s.getUniformLocation("MVPMatrix"),
-        Math::createMVPMatrix(glm::vec2(m_app->ScreenWidth(), m_app->ScreenHeight()), 90, 0.1f, 1000.0f, camera, e)
+        Math::createMVPMatrix(glm::vec2(App::ScreenWidth(), App::ScreenHeight()), 90, 0.1f, 1000.0f, camera, e)
     );
 
     e.VAO.Bind();
@@ -355,7 +354,7 @@ void Playing::createBreakingAnimation(glm::ivec2 breakAnimTexCoords)
 void Playing::breakBlockAction(float elapsed)
 {
     // Break a block
-    if (m_app->MouseHold(SDL_BUTTON_LEFT))
+    if (App::MouseHold(SDL_BUTTON_LEFT))
     {
         // Player changed of the block that was being broken so reset timer
         if (breakingBlockPos != glm::ivec3(lastRayPos))
@@ -404,29 +403,29 @@ void Playing::CollisionMovement(float speed, float elapsed)
     glm::vec3 position = camera.getPosition();
     glm::vec3 rotation = camera.getRotation();
 
-    if (m_app->GetKeys()[SDL_SCANCODE_W])
+    if (App::GetKeys()[SDL_SCANCODE_W])
     {
         // Calculate the directional vector and add it to camera position
         velocity.z -= speed * elapsed * cosf(glm::radians(-rotation.y));
         velocity.x -= speed * elapsed * sinf(glm::radians(-rotation.y));
     }
-    if (m_app->GetKeys()[SDL_SCANCODE_S])
+    if (App::GetKeys()[SDL_SCANCODE_S])
     {
         velocity.z += speed * elapsed * cosf(glm::radians(-rotation.y));
         velocity.x += speed * elapsed * sinf(glm::radians(-rotation.y));
     }
-    if (m_app->GetKeys()[SDL_SCANCODE_D])
+    if (App::GetKeys()[SDL_SCANCODE_D])
     {
         velocity.z -= speed * elapsed * sinf(glm::radians(-rotation.y));
         velocity.x += speed * elapsed * cosf(glm::radians(-rotation.y));
     }
-    if (m_app->GetKeys()[SDL_SCANCODE_A])
+    if (App::GetKeys()[SDL_SCANCODE_A])
     {
         velocity.z += speed * elapsed * sinf(glm::radians(-rotation.y));
         velocity.x -= speed * elapsed * cosf(glm::radians(-rotation.y));
     }
 
-    if (m_app->GetKeys()[SDL_SCANCODE_SPACE])
+    if (App::GetKeys()[SDL_SCANCODE_SPACE])
     {
         // Only jump if the player donesn't have air blocks under him
         if (chunk_manager.getBlockGlobal(position.x, position.y - Height - 1, position.z) > 0)

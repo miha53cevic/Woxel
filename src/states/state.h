@@ -7,13 +7,10 @@
 #include <SDL2/SDL.h>
 #endif
 
-class App;
-
 class State
 {
 public:
-    State(App* app)
-        : m_app(app)
+    State()
     {}
 
     virtual void Event(SDL_Event& e) {}
@@ -24,7 +21,6 @@ public:
     virtual void Resume() {}
 
 protected:
-    App* m_app;
 };
 
 typedef std::unique_ptr<State> StateRef;
