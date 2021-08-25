@@ -23,31 +23,56 @@ private:
 
 class App
 {
-public:
-    App(const char* title, int width, int height);
+private:
+    App();
     ~App();
 
-    void Run();
-
 public:
-    void ClearColor(int r, int g, int b, int a);
+    static App& Get();
+    static void Init(const char* title, int width, int height);
+    static void Run();
 
-    int ScreenWidth();
-    int ScreenHeight();
+    static void ClearColor(int r, int g, int b, int a);
 
-    SDL_Window* GetWindow();
+    static int ScreenWidth();
+    static int ScreenHeight();
 
-    bool GetFocus();
-    Uint8 GetKey(SDL_Scancode code);
-    const Uint8* GetKeys();
+    static SDL_Window* GetWindow();
 
-    void FPSCounter(bool fpscounter);
-    void WireFrame(bool wireframe);
-    void VSync(bool vsync);
-    void Culling(bool cull);
-    void ShowCursor(bool cursor);
+    static bool GetFocus();
+    static Uint8 GetKey(SDL_Scancode code);
+    static const Uint8* GetKeys();
 
-    bool MouseHold(int key);
+    static void FPSCounter(bool fpscounter);
+    static void WireFrame(bool wireframe);
+    static void VSync(bool vsync);
+    static void Culling(bool cull);
+    static void ShowCursor(bool cursor);
+
+    static bool MouseHold(int key);
+
+private:
+    void IInit(const char* title, int width, int height);
+    void IRun();
+
+    void IClearColor(int r, int g, int b, int a);
+
+    int IScreenWidth();
+    int IScreenHeight();
+
+    SDL_Window* IGetWindow();
+
+    bool IGetFocus();
+    Uint8 IGetKey(SDL_Scancode code);
+    const Uint8* IGetKeys();
+
+    void IFPSCounter(bool fpscounter);
+    void IWireFrame(bool wireframe);
+    void IVSync(bool vsync);
+    void ICulling(bool cull);
+    void IShowCursor(bool cursor);
+
+    bool IMouseHold(int key);
 
 protected:
     SDL_Window* m_window;
@@ -64,8 +89,4 @@ protected:
 
     void sdl_die(const char* message);
     void init_screen(const char* title);
-
-    virtual bool Event(SDL_Event& e) = 0;
-    virtual bool Setup() = 0;
-    virtual bool Loop(float elapsedTime) = 0;
 };
