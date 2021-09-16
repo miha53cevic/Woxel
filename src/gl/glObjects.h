@@ -4,11 +4,22 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <iostream>
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
 #include "stb_image/stb_image.h"
+
+namespace gl
+{
+    static void glClearErrors();
+    static GLenum glCheckError(const char *file, int line);
+
+#define glLogCall(x) glClearErrors();\
+    x;\
+    glCheckError(__FILE__, __LINE__) 
+}
 
 namespace gl
 {
@@ -139,14 +150,44 @@ namespace gl
 */
 #ifdef GLOBJECTS_IMPLEMENTATION
 
-//////////////////////////////
-// SHADER IMPLEMENTATION   //
-/////////////////////////////
-
 #include <fstream>
 #include <iostream>
 
 #include <glm/gtc/type_ptr.hpp>
+
+////////////////////////
+// GL ERROR HANDLING  //
+////////////////////////
+
+static void gl::glClearErrors()
+{
+    while (glGetError() != GL_NO_ERROR);
+}
+
+static GLenum gl::glCheckError(const char *file, int line)
+{
+    GLenum errorCode;
+    while ((errorCode = glGetError()) != GL_NO_ERROR)
+    {
+        std::string error;
+        switch (errorCode)
+        {
+        case GL_INVALID_ENUM:                  error = "INVALID_ENUM"; break;
+        case GL_INVALID_VALUE:                 error = "INVALID_VALUE"; break;
+        case GL_INVALID_OPERATION:             error = "INVALID_OPERATION"; break;
+        case GL_OUT_OF_MEMORY:                 error = "OUT_OF_MEMORY"; break;
+        case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
+        }
+        std::cout << error << " | " << file << " (" << line << ")" << std::endl;
+    }
+    return errorCode;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////
+// SHADER IMPLEMENTATION   //
+/////////////////////////////
 
 gl::Shader::Shader()
 {
@@ -157,41 +198,43 @@ gl::Shader::~Shader()
 {
     for (unsigned int i = 0; i < NUM_SHADERS; i++)
     {
-        glDetachShader(m_program, m_shaders[i]);
-        glDeleteShader(m_shaders[i]);
+        glLogCall(glDetachShader(m_program, m_shaders[i]));
+        glLogCall(glDeleteShader(m_shaders[i]));
     }
 
-    glDeleteProgram(m_program);
+    glLogCall(glDeleteProgram(m_program));
 }
 
 void gl::Shader::createProgram(const std::string & fileName)
 {
-    m_program = glCreateProgram();
+    glLogCall(m_program = glCreateProgram());
     m_shaders[0] = CreateShader(LoadShader(fileName + ".vert"), GL_VERTEX_SHADER);
     m_shaders[1] = CreateShader(LoadShader(fileName + ".frag"), GL_FRAGMENT_SHADER);
 
     for (unsigned int i = 0; i < NUM_SHADERS; i++)
-        glAttachShader(m_program, m_shaders[i]);
+    {
+        glLogCall(glAttachShader(m_program, m_shaders[i]));
+    }
 
 
     // Bind attributes
     for (auto& attribute : m_attributes)
     {
-        glBindAttribLocation(m_program, attribute.first, attribute.second.c_str());
+        glLogCall(glBindAttribLocation(m_program, attribute.first, attribute.second.c_str()));
     }
 
-    glLinkProgram(m_program);
-    glValidateProgram(m_program);
+    glLogCall(glLinkProgram(m_program));
+    glLogCall(glValidateProgram(m_program));
 }
 
 void gl::Shader::Bind()
 {
-    glUseProgram(m_program);
+    glLogCall(glUseProgram(m_program));
 }
 
 void gl::Shader::Unbind()
 {
-    glUseProgram(0);
+    glLogCall(glUseProgram(0));
 }
 
 void gl::Shader::setAttribute(int attributeID, std::string var_name)
@@ -204,7 +247,7 @@ void gl::Shader::setUniformLocation(std::string uniform_name)
     if (m_program == -1)
         std::cout << "CreateProgram hasn't been called yet!\n";
 
-    int location = glGetUniformLocation(m_program, uniform_name.c_str());
+    glLogCall(int location = glGetUniformLocation(m_program, uniform_name.c_str()));
     m_uniformLocations.insert(std::make_pair(uniform_name, location));
 }
 
@@ -221,22 +264,22 @@ int gl::Shader::getUniformLocation(std::string uniform_name)
 
 void gl::Shader::loadFloat(int location, float value)
 {
-    glUniform1f(location, value);
+    glLogCall(glUniform1f(location, value));
 }
 
 void gl::Shader::loadVector2(int location, glm::vec2 vector)
 {
-    glUniform2f(location, vector.x, vector.y);
+    glLogCall(glUniform2f(location, vector.x, vector.y));
 }
 
 void gl::Shader::loadVector3(int location, glm::vec3 vector)
 {
-    glUniform3f(location, vector.x, vector.y, vector.z);
+    glLogCall(glUniform3f(location, vector.x, vector.y, vector.z));
 }
 
 void gl::Shader::loadVector4(int location, glm::vec4 vector)
 {
-    glUniform4f(location, vector.x, vector.y, vector.z, vector.w);
+    glLogCall(glUniform4f(location, vector.x, vector.y, vector.z, vector.w));
 }
 
 void gl::Shader::loadBool(int location, bool value)
@@ -245,17 +288,17 @@ void gl::Shader::loadBool(int location, bool value)
     if (value)
         out = 1.0f;
 
-    glUniform1f(location, out);
+    glLogCall(glUniform1f(location, out));
 }
 
 void gl::Shader::loadMatrix(int location, const glm::mat4x4 & matrix)
 {
-    glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
+    glLogCall(glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix)));
 }
 
 GLuint gl::Shader::CreateShader(const std::string & text, unsigned int type)
 {
-    GLuint shader = glCreateShader(type);
+    glLogCall(GLuint shader = glCreateShader(type));
 
     if (shader == 0)
         std::cerr << "Error compiling shader type " << type << std::endl;
@@ -265,8 +308,8 @@ GLuint gl::Shader::CreateShader(const std::string & text, unsigned int type)
     GLint lengths[1];
     lengths[0] = text.length();
 
-    glShaderSource(shader, 1, p, lengths);
-    glCompileShader(shader);
+    glLogCall(glShaderSource(shader, 1, p, lengths));
+    glLogCall(glCompileShader(shader));
 
     return shader;
 }
@@ -303,22 +346,22 @@ std::string gl::Shader::LoadShader(const std::string & fileName)
 
 gl::VertexArray::VertexArray()
 {
-    glGenVertexArrays(1, &VAO);
+    glLogCall(glGenVertexArrays(1, &VAO));
 }
 
 gl::VertexArray::~VertexArray()
 {
-    glDeleteVertexArrays(1, &VAO);
+    glLogCall(glDeleteVertexArrays(1, &VAO));
 }
 
 void gl::VertexArray::Bind()
 {
-    glBindVertexArray(VAO);
+    glLogCall(glBindVertexArray(VAO));
 }
 
 void gl::VertexArray::Unbind()
 {
-    glBindVertexArray(0);
+    glLogCall(glBindVertexArray(0));
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -329,30 +372,30 @@ void gl::VertexArray::Unbind()
 
 gl::VertexBufferObject::VertexBufferObject()
 {
-    glGenBuffers(1, &VBO);
+    glLogCall(glGenBuffers(1, &VBO));
 }
 
 gl::VertexBufferObject::~VertexBufferObject()
 {
-    glDeleteBuffers(1, &VBO);
+    glLogCall(glDeleteBuffers(1, &VBO));
 }
 
 void gl::VertexBufferObject::setData(const std::vector<GLfloat>& data, int attributeID, int size, int DrawMode)
 {
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * data.size(), data.data(), DrawMode);
+    glLogCall(glBindBuffer(GL_ARRAY_BUFFER, VBO));
+    glLogCall(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * data.size(), data.data(), DrawMode));
 
-    glEnableVertexAttribArray(attributeID);
-    glVertexAttribPointer(attributeID, size, GL_FLOAT, false, 0, 0);
+    glLogCall(glEnableVertexAttribArray(attributeID));
+    glLogCall(glVertexAttribPointer(attributeID, size, GL_FLOAT, false, 0, 0));
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glLogCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
 }
 
 void gl::VertexBufferObject::setSubData(const std::vector<GLfloat>& data)
 {
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * data.size(), data.data());
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glLogCall(glBindBuffer(GL_ARRAY_BUFFER, VBO));
+    glLogCall(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * data.size(), data.data()));
+    glLogCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -362,26 +405,26 @@ void gl::VertexBufferObject::setSubData(const std::vector<GLfloat>& data)
 /////////////////////////////
 gl::ElementArrayBuffer::ElementArrayBuffer()
 {
-    glGenBuffers(1, &EBO);
+    glLogCall(glGenBuffers(1, &EBO));
 }
 
 gl::ElementArrayBuffer::~ElementArrayBuffer()
 {
-    glDeleteBuffers(1, &EBO);
+    glLogCall(glDeleteBuffers(1, &EBO));
 }
 
 void gl::ElementArrayBuffer::setData(const std::vector<GLuint>& indicies, int DrawMode)
 {
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indicies.size(), indicies.data(), DrawMode);
+    glLogCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO));
+    glLogCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indicies.size(), indicies.data(), DrawMode));
 
     size = indicies.size();
 }
 
 void gl::ElementArrayBuffer::setSubData(const std::vector<GLuint>& indicies)
 {
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(GLuint) * indicies.size(), indicies.data());
+    glLogCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO));
+    glLogCall(glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(GLuint) * indicies.size(), indicies.data()));
 
     size = indicies.size();
 }
@@ -403,7 +446,7 @@ gl::Texture::Texture(std::string texture_path)
 
 gl::Texture::~Texture()
 {
-    glDeleteTextures(1, &texture);
+    glLogCall(glDeleteTextures(1, &texture));
 }
 
 void gl::Texture::loadTexture(std::string texture_path)
@@ -418,17 +461,17 @@ void gl::Texture::loadTexture(std::string texture_path)
     }
     else
     {
-        glGenTextures(1, &texture);
-        glBindTexture(GL_TEXTURE_2D, texture);
+        glLogCall(glGenTextures(1, &texture));
+        glLogCall(glBindTexture(GL_TEXTURE_2D, texture));
         
         // Send texture data to the GPU
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glLogCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data));
         
         // Must add these otherwise the texture doesn't load
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glLogCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+        glLogCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+        glLogCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
+        glLogCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
         
         // Free image memory
         stbi_image_free(data);
@@ -437,8 +480,8 @@ void gl::Texture::loadTexture(std::string texture_path)
 
 void gl::Texture::activateAndBind()
 {
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glLogCall(glActiveTexture(GL_TEXTURE0));
+    glLogCall(glBindTexture(GL_TEXTURE_2D, texture));
 }
 
 
