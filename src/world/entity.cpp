@@ -25,7 +25,9 @@ void Entity::setVBO(const std::vector<GLfloat>& data, int attributeID, int size,
 
 void Entity::updateVBO(int index, const std::vector<GLfloat>& data, int attributeID, int size, int DrawMode)
 {
+    VAO.Bind();
     VBOs[index]->setData(data, attributeID, size, DrawMode);
+    VAO.Unbind();
 }
 
 void Entity::freeVBOs()

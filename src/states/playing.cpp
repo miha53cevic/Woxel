@@ -237,9 +237,9 @@ void Playing::RenderChunk(Entity & e, gl::Shader & s)
 void Playing::createCubeOutline(float x, float y, float z, int width)
 {
     // Set to intiger space because the cubes are 1*1*1 in size
-    x = (int)x;
-    y = (int)y;
-    z = (int)z;
+    x = int(x);
+    y = int(y);
+    z = int(z);
 
     std::vector<float> vert = {
         x + 0, y + 1, z + 1,

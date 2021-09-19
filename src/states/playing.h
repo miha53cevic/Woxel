@@ -2,13 +2,13 @@
 #include "state.h"
 
 #include "../world/entity.h"
-#include "../util/math.h"
-#include "../world/world.h"
-#include "../util/cube.h"
 #include "../world/blocks.h"
-#include "../ui/ui.h"
-#include "../player/camera.h"
 #include "../world/chunkmanager.h"
+#include "../util/math.h"
+#include "../util/cube.h"
+#include "../util/camera.h"
+#include "../ui/ui.h"
+
 
 class Playing : public State
 {

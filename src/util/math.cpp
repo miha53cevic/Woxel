@@ -1,7 +1,7 @@
 #include "math.h"
 
 #include "../world/entity.h"
-#include "../player/camera.h"
+#include "../util/camera.h"
 
 glm::mat4x4 Math::createTransformationMatrix(glm::vec3 translation, glm::vec3 rotation, glm::vec3 scale)
 {

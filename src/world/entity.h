@@ -1,5 +1,4 @@
-#ifndef ENTITY_H
-#define ENTITY_H
+#pragma once
 #include "../gl/glObjects.h"
 #include <memory>
 
@@ -25,5 +24,3 @@ struct Entity
 
     gl::Texture texture;
 };
-
-#endif

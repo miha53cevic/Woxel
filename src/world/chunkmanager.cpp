@@ -123,8 +123,8 @@ void ChunkManager::generateFlatTerrain(int minAmp)
     auto createTerrain = [&](Chunk* chunk)
     {
         // Go through every block in the chunk
-        for (int x = 0; x < chunkSize.x; x++)
-            for (int z = 0; z < chunkSize.z; z++)
+        for (int x = 0; x < (int)chunkSize.x; x++)
+            for (int z = 0; z < (int)chunkSize.z; z++)
             {
                 int height = minAmp;
 
@@ -133,7 +133,7 @@ void ChunkManager::generateFlatTerrain(int minAmp)
                     height = (chunkSize.y * worldSize.y);
 
                 // For every y block in the chunk set its layers
-                for (int y = 0; y < chunkSize.y; y++)
+                for (int y = 0; y < (int)chunkSize.y; y++)
                 {
                     // Get the voxels global Y position
                     int voxelY = chunk->chunk.position.y + y;
@@ -210,8 +210,8 @@ void ChunkManager::generateTerrain(int minAmp, int maxAmp)
     auto createTerrain = [&](Chunk* chunk)
     {
         // Go through every block in the chunk
-        for (int x = 0; x < chunkSize.x; x++)
-            for (int z = 0; z < chunkSize.z; z++)
+        for (int x = 0; x < (int)chunkSize.x; x++)
+            for (int z = 0; z < (int)chunkSize.z; z++)
             {
                 // Calculate the peaks
                 float posX = (chunk->chunk.position.x + x) / chunkSize.x;
@@ -229,7 +229,7 @@ void ChunkManager::generateTerrain(int minAmp, int maxAmp)
                     height = (chunkSize.y * worldSize.y);
 
                 // For every y block in the chunk set its layers
-                for (int y = 0; y < chunkSize.y; y++)
+                for (int y = 0; y < (int)chunkSize.y; y++)
                 {
                     // Get the voxels global Y position
                     int voxelY = chunk->chunk.position.y + y;
@@ -261,11 +261,11 @@ void ChunkManager::generateTerrain(int minAmp, int maxAmp)
                             chunk->setBlockLocal(x, y, z, Blocks::GRASS);
 
                             if (Math::fRandom(0, 1) >= 0.99f)
-                                if (x > 0 && x + 1 < chunkSize.x && z > 0 && z + 1 < chunkSize.z)
+                                if (x > 0 && x + 1 < (int)chunkSize.x && z > 0 && z + 1 < (int)chunkSize.z)
                                 {
                                     glm::vec3 location;
                                     location.x = chunk->chunk.position.x + x;
-                                    location.y = height;
+                                    location.y = (float)height;
                                     location.z = chunk->chunk.position.z + z;
                                     createTree(location);
                                 }

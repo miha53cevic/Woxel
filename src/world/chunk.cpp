@@ -12,13 +12,13 @@ Chunk::Chunk(glm::vec3 position, glm::uvec3 size, gl::TextureAtlas* atlas)
         m_neighbours[i] = nullptr;
 
     // By default the chunk is empty with AIR blocks
-    for (int i = 0; i < size.x * size.y * size.z; i++)
+    for (int i = 0; i < (int)(size.x * size.y * size.z); i++)
         m_blocks.push_back(Blocks::AIR);
 }
 
 void Chunk::setBlockLocal(int x, int y, int z, int blockid)
 {
-    if (x < 0 || x >= m_size.x || y < 0 || y >= m_size.y || z < 0 || z >= m_size.z)
+    if (x < 0 || x >= (int)m_size.x || y < 0 || y >= (int)m_size.y || z < 0 || z >= (int)m_size.z)
     {
     #ifdef DEBUG
             printf("Set out of bounds block!\n");
@@ -31,7 +31,7 @@ void Chunk::setBlockLocal(int x, int y, int z, int blockid)
 
 int Chunk::getBlockLocal(int x, int y, int z)
 {
-    if (x < 0 || x >= m_size.x || y < 0 || y >= m_size.y || z < 0 || z >= m_size.z)
+    if (x < 0 || x >= (int)m_size.x || y < 0 || y >= (int)m_size.y || z < 0 || z >= (int)m_size.z)
     {
     #ifdef DEBUG
             printf("Got out of bounds block!\n");
@@ -90,9 +90,9 @@ void Chunk::generateMesh()
         indicies += 4;
     };
 
-    for (int x = 0; x < m_size.x; x++)
-        for (int y = 0; y < m_size.y; y++)
-            for (int z = 0; z < m_size.z; z++)
+    for (int x = 0; x < (int)m_size.x; x++)
+        for (int y = 0; y < (int)m_size.y; y++)
+            for (int z = 0; z < (int)m_size.z; z++)
             {
                 bool left = false, right = false, front = false, back = false, top = false, bottom = false;
                 if (x != 0) left = true;
