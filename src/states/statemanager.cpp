@@ -12,7 +12,7 @@ StateManager & StateManager::Get()
 
 void StateManager::Add(StateRef newstate)
 {
-    StateManager::Get().IAdd(std::move(newstate));
+    StateManager::Get().IAdd(newstate);
 }
 
 void StateManager::Pop()

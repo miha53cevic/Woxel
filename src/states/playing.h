@@ -1,12 +1,12 @@
 #pragma once
 #include "state.h"
 
-#include "../world/entity.h"
 #include "../world/blocks.h"
 #include "../world/chunkmanager.h"
 #include "../util/math.h"
 #include "../util/cube.h"
 #include "../util/camera.h"
+#include "../util/entity.h"
 #include "../ui/ui.h"
 
 
@@ -32,6 +32,9 @@ private:
     Entity voxelOutline;
     gl::Shader outline;
 
+    gl::Material shader_material;
+    gl::Material outline_material;
+
     glm::vec3 velocity;
 
     float totalTime;
@@ -47,8 +50,6 @@ private:
     bool bCreativeMode = false;
 
 private:
-    void RenderEntity(Entity& e, gl::Shader& s, GLenum mode = GL_TRIANGLES);
-    void RenderChunk(Entity& e, gl::Shader& s);
     void createCubeOutline(float x, float y, float z, int width);
     void createBreakingAnimation(glm::ivec2 breakAnimTexCoords);
     void breakBlockAction(float elapsed);

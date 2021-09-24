@@ -23,4 +23,4 @@ public:
 protected:
 };
 
-typedef std::unique_ptr<State> StateRef;
+typedef std::shared_ptr<State> StateRef;

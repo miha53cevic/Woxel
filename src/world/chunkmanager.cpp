@@ -20,8 +20,8 @@ void ChunkManager::generateChunks(int x, int y, int z)
         for (int sy = 0; sy < y; sy++)
             for (int sz = 0; sz < z; sz++)
             {
-                auto temp = std::make_unique<Chunk>(glm::vec3(sx * chunkSize.x, sy * chunkSize.y, sz * chunkSize.z), chunkSize, &atlas);
-                chunks.push_back(std::move(temp));
+                auto temp = std::make_shared<Chunk>(glm::vec3(sx * chunkSize.x, sy * chunkSize.y, sz * chunkSize.z), chunkSize, &atlas);
+                chunks.push_back(temp);
             }
 
     // Set each chunks neighbours

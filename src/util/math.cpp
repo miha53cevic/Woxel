@@ -1,6 +1,6 @@
 #include "math.h"
 
-#include "../world/entity.h"
+#include "../util/entity.h"
 #include "../util/camera.h"
 
 glm::mat4x4 Math::createTransformationMatrix(glm::vec3 translation, glm::vec3 rotation, glm::vec3 scale)
@@ -34,7 +34,7 @@ glm::mat4x4 Math::createViewMatrix(Camera& camera)
     return view;
 }
 
-glm::mat4x4 Math::createMVPMatrix(glm::vec2 screenSize, float FOV, float NEAR_PLANE, float FAR_PLANE, Camera & camera, Entity & entity)
+glm::mat4x4 Math::createMVPMatrix(Entity& entity, Camera& camera, glm::vec2 screenSize, float FOV, float NEAR_PLANE, float FAR_PLANE)
 {
     // MVP Matrix = Projection * View * Model(transformation matrix)
     return (

@@ -2,6 +2,7 @@
 
 #include "../app/app.h"
 #include "../states/statemanager.h"
+#include "../renderer/renderer.h"
 
 #define toStr(x) std::to_string(x)
 #define HOTBAR_SIZE 7
@@ -106,6 +107,9 @@ void Playing::Setup()
 
     breakingCube.texture.loadTexture("resources/textures/textureAtlas.png");
 
+    shader_material.setShader(&shader);
+    outline_material.setShader(&outline);
+
     /*
         Explanation
         -----------
@@ -162,10 +166,18 @@ void Playing::Loop(float elapsed)
 
     // Render chunks in the chunk_manager
     for (auto& i : chunk_manager.chunks)
-        RenderChunk(i->chunk, shader);
+    {
+        shader_material.setUniform("MVPMatrix", Math::createMVPMatrix(
+            i->chunk, camera, glm::vec2(App::ScreenWidth(), App::ScreenHeight())
+        ));
+        Renderer::RenderEntity(i->chunk, shader_material);
+    }
 
     // Render selected block outline
-    RenderEntity(voxelOutline, outline, GL_LINES);
+    outline_material.setUniform("MVPMatrix", Math::createMVPMatrix(
+        voxelOutline, camera, glm::vec2(App::ScreenWidth(), App::ScreenHeight())
+    ));
+    Renderer::RenderNoTexture(voxelOutline.VAO, voxelOutline.EBO, outline_material, GL_LINES);
 
     // Check for block breaking
     breakBlockAction(elapsed);
@@ -185,6 +197,10 @@ void Playing::Loop(float elapsed)
     {
         uirenderer.setUI(toStr((Blocks::BLOCK)hotbar[i]), { 424 + i * 64, 632 }, { 48, 48 }, 0.0f);
     }
+
+    // Log Draw Calls per frame
+    std::cout << "DrawCalls:" << Renderer::drawCalls << "\n";
+    Renderer::drawCalls = 0; // reset so the next frame can be counted
 }
 
 void Playing::Pause()
@@ -193,45 +209,6 @@ void Playing::Pause()
 
 void Playing::Resume()
 {
-}
-
-void Playing::RenderEntity(Entity & e, gl::Shader & s, GLenum mode)
-{
-    s.Bind();
-
-    // Check if a texture exists and try to load it
-    if (e.texture.texture != -1)
-        e.texture.activateAndBind();
-
-    s.loadMatrix(
-        s.getUniformLocation("MVPMatrix"),
-        Math::createMVPMatrix(glm::vec2(App::ScreenWidth(), App::ScreenHeight()), 90, 0.1f, 1000.0f, camera, e)
-    );
-
-    e.VAO.Bind();
-    glDrawElements(mode, e.EBO.size, GL_UNSIGNED_INT, 0);
-    e.VAO.Unbind();
-
-    s.Unbind();
-}
-
-void Playing::RenderChunk(Entity & e, gl::Shader & s)
-{
-    s.Bind();
-
-    // All chunks use the same texture atlas
-    chunk_manager.atlas.texture.activateAndBind();
-
-    s.loadMatrix(
-        s.getUniformLocation("MVPMatrix"),
-        Math::createMVPMatrix(glm::vec2(App::ScreenWidth(), App::ScreenHeight()), 90, 0.1f, 1000.0f, camera, e)
-    );
-
-    e.VAO.Bind();
-    glDrawElements(GL_TRIANGLES, e.EBO.size, GL_UNSIGNED_INT, 0);
-    e.VAO.Unbind();
-
-    s.Unbind();
 }
 
 void Playing::createCubeOutline(float x, float y, float z, int width)
@@ -348,7 +325,10 @@ void Playing::createBreakingAnimation(glm::ivec2 breakAnimTexCoords)
     breakingCube.position = glm::vec3(x, y, z);
 
     // Render
-    RenderEntity(breakingCube, shader, GL_TRIANGLES);
+    shader_material.setUniform("MVPMatrix", Math::createMVPMatrix(
+        breakingCube, camera, glm::vec2(App::ScreenWidth(), App::ScreenHeight())
+    ));
+    Renderer::RenderEntity(breakingCube, shader_material);
 }
 
 void Playing::breakBlockAction(float elapsed)

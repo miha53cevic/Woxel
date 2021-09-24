@@ -6,6 +6,7 @@ Chunk::Chunk(glm::vec3 position, glm::uvec3 size, gl::TextureAtlas* atlas)
     : m_atlas(atlas)
 {
     chunk.position = position;
+    chunk.texture.texture = atlas->texture.texture;
     m_size = size;
 
     for (int i = 0; i < 6; i++)

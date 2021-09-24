@@ -4,7 +4,7 @@
 #include <vector>
 #include <glm/glm.hpp>
 #include "../gl/glObjects.h"
-#include "entity.h"
+#include "../util/entity.h"
 
 enum NEIGHBOUR
 {
@@ -43,4 +43,4 @@ private:
     int index3d(int x, int y, int z);
 };
 
-typedef std::unique_ptr<Chunk> ChunkRef;
+typedef std::shared_ptr<Chunk> ChunkRef;

@@ -7,7 +7,7 @@
 int main(int argc, char* argv[])
 {
     App::Init("Woxel", 1280, 720);
-    StateManager::Add(std::make_unique<Playing>());
+    StateManager::Add(std::make_shared<Playing>());
     App::Run();
     
     return 0;

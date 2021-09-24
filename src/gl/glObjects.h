@@ -3,7 +3,7 @@
 
 #include <string>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <iostream>
 
 #include <glad/glad.h>
@@ -13,12 +13,12 @@
 
 namespace gl
 {
-    static void glClearErrors();
-    static GLenum glCheckError(const char *file, int line);
+    void glClearErrors();
+    GLenum glCheckError(const char *file, int line);
 
 #define glLogCall(x) glClearErrors();\
     x;\
-    glCheckError(__FILE__, __LINE__) 
+    glCheckError(__FILE__, __LINE__)
 }
 
 namespace gl
@@ -35,9 +35,9 @@ namespace gl
         void Unbind();
 
         void setAttribute(int attributeID, std::string var_name);
-        void setUniformLocation(std::string uniform_name);
 
-        int getUniformLocation(std::string uniform_name);
+        void setUniformLocation(std::string uniform_name);
+        int  getUniformLocation(std::string uniform_name);
 
         void loadFloat(int location, float value);
         void loadVector2(int location, glm::vec2 vector);
@@ -50,7 +50,7 @@ namespace gl
         static const unsigned int NUM_SHADERS = 2;
 
         std::vector<std::pair<int, std::string>> m_attributes;
-        std::map<std::string, int> m_uniformLocations;
+        std::unordered_map<std::string, int> m_uniformLocations;
 
         GLuint CreateShader(const std::string& text, unsigned int type);
         std::string LoadShader(const std::string& fileName);
@@ -134,6 +134,31 @@ namespace gl
     };
 };
 
+namespace gl
+{
+    class Material
+    {
+    public:
+        Material();
+        Material(Shader* shader);
+        ~Material();
+
+        void setShader(Shader* shader);
+
+        void setUniform(std::string uniformName, float value);
+        void setUniform(std::string uniformName, glm::vec2 vector);
+        void setUniform(std::string uniformName, glm::vec3 vector);
+        void setUniform(std::string uniformName, glm::vec4 vector);
+        void setUniform(std::string uniformName, bool value);
+        void setUniform(std::string uniformName, const glm::mat4x4& matrix);
+
+        Shader* shader;
+
+    private:
+        bool ShaderLoaded();
+    };
+}
+
 /*
     Usage in code
     -------------
@@ -155,16 +180,16 @@ namespace gl
 
 #include <glm/gtc/type_ptr.hpp>
 
-////////////////////////
-// GL ERROR HANDLING  //
-////////////////////////
+///////////////////////////////////////
+// GL ERROR HANDLING IMPLEMENTATION  //
+///////////////////////////////////////
 
-static void gl::glClearErrors()
+void gl::glClearErrors()
 {
     while (glGetError() != GL_NO_ERROR);
 }
 
-static GLenum gl::glCheckError(const char *file, int line)
+GLenum gl::glCheckError(const char *file, int line)
 {
     GLenum errorCode;
     while ((errorCode = glGetError()) != GL_NO_ERROR)
@@ -251,6 +276,7 @@ void gl::Shader::setUniformLocation(std::string uniform_name)
     m_uniformLocations.insert(std::make_pair(uniform_name, location));
 }
 
+// Return -1 on not found
 int gl::Shader::getUniformLocation(std::string uniform_name)
 {
     if (m_uniformLocations.find(uniform_name) == m_uniformLocations.end())
@@ -512,6 +538,153 @@ std::vector<GLfloat> gl::TextureAtlas::getTextureCoords(const glm::ivec2 & coord
     GLfloat yMax = (yMin + INDV_TEX_SIZE) - PIXEL_SIZE;
 
     return { xMin, yMin, xMin, yMax, xMax, yMax, xMax, yMin };
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////
+// Material IMPLEMENTATION //
+/////////////////////////////
+gl::Material::Material()
+{
+    shader = nullptr;
+}
+
+gl::Material::Material(Shader* shader)
+{
+    Material();
+    this->shader = shader;
+}
+
+gl::Material::~Material()
+{
+    // for easier error checking
+    shader = nullptr;
+}
+
+void gl::Material::setShader(Shader* shader)
+{
+    this->shader = shader;
+}
+
+bool gl::Material::ShaderLoaded()
+{
+    if (shader == nullptr)
+    {
+        printf("[glObjects - Material]: Shader was not set!\n");
+        return false;
+    }
+    else return true;
+}
+
+void gl::Material::setUniform(std::string uniformName, float value)
+{
+    if (!ShaderLoaded())
+        return;
+
+    // If uniform is new add it, otherwise just update the data
+    if (shader->getUniformLocation(uniformName) == -1)
+    {
+        shader->setUniformLocation(uniformName);
+    }
+
+    shader->Bind();
+    shader->loadFloat(
+        shader->getUniformLocation(uniformName),
+        value
+    );
+    shader->Unbind();
+}
+
+void gl::Material::setUniform(std::string uniformName, glm::vec2 vector)
+{
+    if (!ShaderLoaded())
+        return;
+
+    if (shader->getUniformLocation(uniformName) == -1)
+    {
+        shader->setUniformLocation(uniformName);
+    }
+
+    shader->Bind();
+    shader->loadVector2(
+        shader->getUniformLocation(uniformName),
+        vector
+    );
+    shader->Unbind();
+}
+
+void gl::Material::setUniform(std::string uniformName, glm::vec3 vector)
+{
+    if (!ShaderLoaded())
+        return;
+
+    if (shader->getUniformLocation(uniformName) == -1)
+    {
+        shader->setUniformLocation(uniformName);
+    }
+
+    shader->Bind();
+    shader->loadVector3(
+        shader->getUniformLocation(uniformName),
+        vector
+    );
+    shader->Unbind();
+}
+
+void gl::Material::setUniform(std::string uniformName, glm::vec4 vector)
+{
+    if (!ShaderLoaded())
+        return;
+
+    if (shader->getUniformLocation(uniformName) == -1)
+    {
+        shader->setUniformLocation(uniformName);
+    }
+
+    shader->Bind();
+    shader->loadVector4(
+        shader->getUniformLocation(uniformName),
+        vector
+    );
+    shader->Unbind();
+}
+
+void gl::Material::setUniform(std::string uniformName, bool value)
+{
+    if (!ShaderLoaded())
+        return;
+
+    if (shader->getUniformLocation(uniformName) == -1)
+    {
+        shader->setUniformLocation(uniformName);
+    }
+
+    shader->Bind();
+    shader->loadBool(
+        shader->getUniformLocation(uniformName),
+        value
+    );
+    shader->Unbind();
+}
+
+void gl::Material::setUniform(std::string uniformName, const glm::mat4x4& matrix)
+{
+    if (!ShaderLoaded())
+        return;
+
+    if (shader->getUniformLocation(uniformName) == -1)
+    {
+        shader->setUniformLocation(uniformName);
+    }
+
+    shader->Bind();
+    shader->loadMatrix(
+        shader->getUniformLocation(uniformName),
+        matrix
+    );
+    shader->Unbind();
 }
 
 #endif // GLOBJECTS_IMPLEMENTATION
