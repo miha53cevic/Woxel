@@ -1,6 +1,3 @@
-#ifndef MATH_H
-#define MATH_H
-
 #pragma once
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
@@ -14,39 +11,18 @@
 #endif
 
 struct Entity;
-
-class Camera
-{
-public:
-    Camera();
-
-    void Update(SDL_Window* win, bool hasFocus, float sens = 0.25f);
-    void Movement(const Uint8* keys, float elapsed, float speed = 10);
-
-    glm::vec3 getPosition();
-    glm::vec3 getRotation();
-
-    void setPosition(glm::vec3 position);
-    void setRotation(glm::vec3 rotation);
-
-private:
-    glm::vec3 m_position;
-    // Rotations are: Pitch, Yaw, Roll
-    glm::vec3 m_rotation;
-};
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
+class Camera;
 
 namespace Math
 {
     glm::mat4x4 createTransformationMatrix(glm::vec3 translation, glm::vec3 rotation, glm::vec3 scale);
-    glm::mat4x4 createProjectionMatrix(glm::vec2 screenSize, float FOV, float NEAR_PLANE, float FAR_PLANE);
+    glm::mat4x4 createProjectionMatrix(glm::vec2 screenSize, float FOV = 90.0f, float NEAR_PLANE = 0.1f, float FAR_PLANE = 1000.0f);
     glm::mat4x4 createViewMatrix(Camera& camera);
     
     // Calculate the Model View Projection Matrix by multiplying in the reverse order and then multiplying by the vertex
     // - MVP = Projection * View * Model
     // - Shaders: gl_Position = MVP * vec4(vertexPosition, 1.0);
-    glm::mat4x4 createMVPMatrix(glm::vec2 screenSize, float FOV, float NEAR_PLANE, float FAR_PLANE, Camera& camera, Entity& entity);
+    glm::mat4x4 createMVPMatrix(Entity& entity, Camera& camera, glm::vec2 screenSize, float FOV = 90.0f, float NEAR_PLANE = 0.1f, float FAR_PLANE = 1000.0f);
 
     // Random number generator in given range
     float fRandom(float first, float second);
@@ -89,5 +65,3 @@ namespace Noise
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#endif

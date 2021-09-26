@@ -1,5 +1,4 @@
-#ifndef CUBE_H
-#define CUBE_H
+#pragma once
 #include <vector>
 #include "glad/glad.h"
 
@@ -116,5 +115,3 @@ namespace Cube
          23,21,22
     };
 };
-
-#endif

@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <glad/glad.h>
+#include "../states/statemanager.h"
 
 Clock::Clock()
 {
@@ -12,21 +13,17 @@ Clock::Clock()
 float Clock::restart()
 {
     m_end = SDL_GetTicks();
-    float elapsed = (m_end - m_start) / 1000.0;
+    float elapsed = (m_end - m_start) / 1000.0f;
     m_start = m_end;
     return elapsed;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-App::App(const char * title, int width, int height)
-    : m_screenWidth(width)
-    , m_screenHeight(height)
-    , m_window(nullptr)
-    , m_title(title)
+App::App()
+    : m_window(nullptr)
     , m_bFPSCounter(true)
 {
-    init_screen(title);
 }
 
 App::~App()
@@ -36,7 +33,93 @@ App::~App()
     SDL_Quit();
 }
 
+App & App::Get()
+{
+    static App app;
+    return app;
+}
+
+void App::Init(const char * title, int width, int height)
+{
+    App::Get().IInit(title, width, height);
+}
+
 void App::Run()
+{
+    App::Get().IRun();
+}
+
+int App::ScreenWidth()
+{
+    return App::Get().IScreenWidth();
+}
+
+int App::ScreenHeight()
+{
+    return App::Get().IScreenHeight();
+}
+
+SDL_Window * App::GetWindow()
+{
+    return App::Get().IGetWindow();
+}
+
+bool App::GetFocus()
+{
+    return App::Get().IGetFocus();
+}
+
+Uint8 App::GetKey(SDL_Scancode code)
+{
+    return App::Get().IGetKey(code);
+}
+
+const Uint8 * App::GetKeys()
+{
+    return App::Get().IGetKeys();
+}
+
+void App::FPSCounter(bool fpscounter)
+{
+    App::Get().IFPSCounter(fpscounter);
+}
+
+void App::WireFrame(bool wireframe)
+{
+    App::Get().IWireFrame(wireframe);
+}
+
+void App::VSync(bool vsync)
+{
+    App::Get().IVSync(vsync);
+}
+
+void App::Culling(bool cull)
+{
+    App::Get().ICulling(cull);
+}
+
+void App::ShowCursor(bool cursor)
+{
+    App::Get().IShowCursor(cursor);
+}
+
+bool App::MouseHold(int key)
+{
+    return App::Get().IMouseHold(key);
+}
+
+void App::IInit(const char * title, int width, int height)
+{
+    m_title = title;
+    m_screenWidth = width;
+    m_screenHeight = height;
+
+    // Create window and context
+    init_screen(title);
+}
+
+void App::IRun()
 {
     // Get keystates
     m_keys = SDL_GetKeyboardState(nullptr);
@@ -44,8 +127,7 @@ void App::Run()
     bool quit = false;
 
     // Run USER setup code
-    if (!Setup())
-        quit = true;
+    // StateManager calls Setup() on every new added state
 
     SDL_Event e;
     while (!quit)
@@ -68,8 +150,8 @@ void App::Run()
             }
 
             // Run USER event code
-            if (!Event(e))
-                quit = true;
+            if (StateManager::Size() > 0)
+                StateManager::CurrentState()->Event(e);
         }
 
         // Clear
@@ -77,8 +159,8 @@ void App::Run()
 
         // Run USER loop code
         float elapsed = m_clock.restart();
-        if (!Loop(elapsed))
-            quit = true;
+        if (StateManager::Size() > 0)
+            StateManager::CurrentState()->Loop(elapsed);
 
         // Display
         SDL_GL_SwapWindow(m_window);
@@ -93,38 +175,52 @@ void App::Run()
     }
 }
 
-int App::ScreenWidth()
+void App::IClearColor(int r, int g, int b, int a)
+{
+}
+
+int App::IScreenWidth()
 {
     return m_screenWidth;
 }
 
-int App::ScreenHeight()
+int App::IScreenHeight()
 {
     return m_screenHeight;
 }
 
-bool App::GetFocus()
+SDL_Window * App::IGetWindow()
+{
+    return m_window;
+}
+
+bool App::IGetFocus()
 {
     return m_bFocus;
 }
 
-Uint8 App::GetKey(SDL_Scancode code)
+Uint8 App::IGetKey(SDL_Scancode code)
 {
     return m_keys[code];
 }
 
-void App::FPSCounter(bool fpscounter)
+const Uint8 * App::IGetKeys()
+{
+    return m_keys;
+}
+
+void App::IFPSCounter(bool fpscounter)
 {
     m_bFPSCounter = fpscounter;
 }
 
-void App::WireFrame(bool wireframe)
+void App::IWireFrame(bool wireframe)
 {
     if (wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     else           glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void App::VSync(bool vsync)
+void App::IVSync(bool vsync)
 {
     if (vsync) SDL_GL_SetSwapInterval(1);
     else       SDL_GL_SetSwapInterval(0);
@@ -132,13 +228,13 @@ void App::VSync(bool vsync)
 
 // Culling should be Counter-Clock Wise
 // - glFrontFace(GL_CCW) by default but can be set to GL_CW
-void App::Culling(bool cull)
+void App::ICulling(bool cull)
 {
     if (cull) glEnable(GL_CULL_FACE);
     else      glDisable(GL_CULL_FACE);
 }
 
-void App::ShowCursor(bool cursor)
+void App::IShowCursor(bool cursor)
 {
     SDL_ShowCursor(cursor);
 }
@@ -149,7 +245,7 @@ void App::ShowCursor(bool cursor)
  *   - SDL_BUTTON_MIDDLE  Middle mouse button
  *   - SDL_BUTTON_RIGHT   Right mouse button
  */
-bool App::MouseHold(int key)
+bool App::IMouseHold(int key)
 {
     int x, y;
     return SDL_GetMouseState(&x, &y) == SDL_BUTTON(key);
@@ -203,7 +299,7 @@ void App::init_screen(const char * title)
     glEnable(GL_DEPTH_TEST);
 }
 
-void App::setClearColor(int r, int g, int b, int a)
+void App::ClearColor(int r, int g, int b, int a)
 {
     float _r = r / 255.0f;
     float _g = g / 255.0f;

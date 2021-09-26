@@ -7,8 +7,6 @@ UIRenderer::UIRenderer(glm::ivec2 screenSize)
     prepRenderData();
 
     // Load shader
-    m_shader.setAttribute(0, "position");
-    m_shader.setAttribute(1, "textureCoords");
     m_shader.createProgram("resources/shaders/ui");
     
     m_shader.setUniformLocation("model");
@@ -133,18 +131,20 @@ void UIRenderer::prepRenderData()
     setVBO(textureCoords, 1, 2);
 }
 
-void UIRenderer::setVBO(const std::vector<GLfloat>& data, int attributeID, int size, int DrawMode)
+void UIRenderer::setVBO(const std::vector<GLfloat>& data, int attributeID, int size, GLsizei stride, const void * offset, int DrawMode)
 {
     m_VAO.Bind();
     auto VBO = std::make_unique<gl::VertexBufferObject>();
-    VBO->setData(data, attributeID, size, DrawMode);
+    VBO->setData(data, attributeID, size, stride, offset, DrawMode);
     VBOs.push_back(std::move(VBO));
     m_VAO.Unbind();
 }
 
-void UIRenderer::updateVBO(int index, const std::vector<GLfloat>& data, int attributeID, int size, int DrawMode)
+void UIRenderer::updateVBO(int index, const std::vector<GLfloat>& data, int attributeID, int size, GLsizei stride, const void * offset, int DrawMode)
 {
-    VBOs[index]->setData(data, attributeID, size, DrawMode);
+    m_VAO.Bind();
+    VBOs[index]->setData(data, attributeID, size, stride, offset, DrawMode);
+    m_VAO.Unbind();
 }
 
 void UIRenderer::freeVBOs()
