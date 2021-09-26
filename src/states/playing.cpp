@@ -81,34 +81,26 @@ void Playing::Setup()
     // Set Sky colour
     App::ClearColor(64, 191, 255, 255);
 
+    shader.createProgram("resources/shaders/shader");
+    outline.createProgram("resources/shaders/outline_shader");
+
+    shader_material.setShader(&shader);
+    outline_material.setShader(&outline);
+
+    breakingCube.texture.loadTexture("resources/textures/textureAtlas.png");
+
+    // Create chunks
+    chunk_manager.generateChunks(4, 4, 4);
+    chunk_manager.generateTerrain(CHUNK_SIZE, CHUNK_SIZE * 3);
+    printf("Created %d chunk(s)\n", chunk_manager.chunks.size());
+
     // Initial player position is in the middle of the map
-    camera.setPosition({ 8 * CHUNK_SIZE, CHUNK_SIZE * 2, 8 * CHUNK_SIZE });
+    camera.setPosition({ (chunk_manager.worldSize.x / 2) * CHUNK_SIZE, (chunk_manager.worldSize.y / 2) * CHUNK_SIZE, (chunk_manager.worldSize.z / 2) * CHUNK_SIZE });
     velocity = { 0, 0, 0 };
 
     // Initial hotbar items
     for (int i = 0; i < HOTBAR_SIZE; i++)
         hotbar[i] = i + 1;
-
-    shader.setAttribute(0, "position");
-    shader.setAttribute(1, "textureCoords");
-    shader.createProgram("resources/shaders/shader");
-
-    shader.setUniformLocation("MVPMatrix");
-
-    // Create chunks
-    chunk_manager.generateChunks(16, 4, 16);
-    chunk_manager.generateTerrain(CHUNK_SIZE, CHUNK_SIZE * 3);
-    printf("Created %d chunk(s)\n", chunk_manager.chunks.size());
-
-    outline.setAttribute(0, "position");
-    outline.createProgram("resources/shaders/outline_shader");
-
-    outline.setUniformLocation("MVPMatrix");
-
-    breakingCube.texture.loadTexture("resources/textures/textureAtlas.png");
-
-    shader_material.setShader(&shader);
-    outline_material.setShader(&outline);
 
     /*
         Explanation

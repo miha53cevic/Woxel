@@ -14,19 +14,19 @@ void Entity::setEBO(const std::vector<GLuint>& indicies, int DrawMode)
     VAO.Unbind();
 }
 
-void Entity::setVBO(const std::vector<GLfloat>& data, int attributeID, int size, int DrawMode)
+void Entity::setVBO(const std::vector<GLfloat>& data, int attributeID, int size, GLsizei stride, const void * offset, int DrawMode)
 {
     VAO.Bind();
     auto VBO = std::make_unique<gl::VertexBufferObject>();
-    VBO->setData(data, attributeID, size, DrawMode);
+    VBO->setData(data, attributeID, size, stride, offset, DrawMode);
     VBOs.push_back(std::move(VBO));
     VAO.Unbind();
 }
 
-void Entity::updateVBO(int index, const std::vector<GLfloat>& data, int attributeID, int size, int DrawMode)
+void Entity::updateVBO(int index, const std::vector<GLfloat>& data, int attributeID, int size, GLsizei stride, const void * offset, int DrawMode)
 {
     VAO.Bind();
-    VBOs[index]->setData(data, attributeID, size, DrawMode);
+    VBOs[index]->setData(data, attributeID, size, stride, offset, DrawMode);
     VAO.Unbind();
 }
 

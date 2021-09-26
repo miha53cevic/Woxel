@@ -12,7 +12,7 @@ void Renderer::Render(gl::VertexArray & vao, gl::ElementArrayBuffer & ebo, gl::T
 
     vao.Bind();
     gl::glClearErrors();
-    glDrawElements(mode, ebo.size, GL_UNSIGNED_INT, 0);
+    glDrawElements(mode, ebo.size, GL_UNSIGNED_INT, nullptr);
     gl::glCheckError(__FILE__, __LINE__);
     drawCalls++;
     vao.Unbind();
@@ -31,7 +31,7 @@ void Renderer::RenderEntity(Entity & entity, gl::Material & material, GLenum mod
 
     entity.VAO.Bind();
     gl::glClearErrors();
-    glDrawElements(mode, entity.EBO.size, GL_UNSIGNED_INT, 0);
+    glDrawElements(mode, entity.EBO.size, GL_UNSIGNED_INT, nullptr);
     gl::glCheckError(__FILE__, __LINE__);
     drawCalls++;
     entity.VAO.Unbind();
@@ -45,7 +45,7 @@ void Renderer::RenderNoTexture(gl::VertexArray & vao, gl::ElementArrayBuffer & e
 
     vao.Bind();
     gl::glClearErrors();
-    glDrawElements(mode, ebo.size, GL_UNSIGNED_INT, 0);
+    glDrawElements(mode, ebo.size, GL_UNSIGNED_INT, nullptr);
     gl::glCheckError(__FILE__, __LINE__);
     drawCalls++;
     vao.Unbind();

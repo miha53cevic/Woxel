@@ -34,8 +34,8 @@ private:
     gl::Shader      m_shader;
     glm::ivec2      m_screenSize;
 
-    void setVBO(const std::vector<GLfloat>& data, int attributeID, int size, int DrawMode = GL_STATIC_DRAW);
-    void updateVBO(int index, const std::vector<GLfloat>& data, int attributeID, int size, int DrawMode = GL_STATIC_DRAW);
+    void setVBO(const std::vector<GLfloat>& data, int attributeID, int size, GLsizei stride = 0, const void * offset = nullptr, int DrawMode = GL_STATIC_DRAW);
+    void updateVBO(int index, const std::vector<GLfloat>& data, int attributeID, int size, GLsizei stride = 0, const void * offset = nullptr, int DrawMode = GL_STATIC_DRAW);
     void freeVBOs();
 
     std::vector<std::unique_ptr<gl::VertexBufferObject>> VBOs;
