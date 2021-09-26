@@ -1,5 +1,5 @@
 #version 330
-in vec3 position;
+in layout(location = 0) vec3 position;
 
 uniform mat4 MVPMatrix;
 
