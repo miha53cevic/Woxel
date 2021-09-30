@@ -84,8 +84,10 @@ namespace gl
         GLuint VBO = -1;
 
         // stride is the size of each vertex, if 0 is given it takes thinks it's a packed array
-        void setData(const std::vector<GLfloat>& data, int attributeID, int size, GLsizei stride = 0, const void * offset = 0, int DrawMode = GL_STATIC_DRAW);
-        void setSubData(GLintptr offset, const std::vector<GLfloat>& data);
+        void setData(const std::vector<GLfloat>& data, GLsizeiptr sizeofData, int attributeID, int size, GLsizei stride = 0, const void * offset = 0, int DrawMode = GL_STATIC_DRAW);
+        void setSubData(GLintptr offset, GLsizeiptr sizeofData, const std::vector<GLfloat>& data);
+
+        void defineVertexAttribPointer(int attributeID, int size, GLsizei stride, const void * offset);
     };
 };
 
@@ -410,10 +412,10 @@ gl::VertexBufferObject::~VertexBufferObject()
     glLogCall(glDeleteBuffers(1, &VBO));
 }
 
-void gl::VertexBufferObject::setData(const std::vector<GLfloat>& data, int attributeID, int size, GLsizei stride, const void * offset, int DrawMode)
+void gl::VertexBufferObject::setData(const std::vector<GLfloat>& data, GLsizeiptr sizeofData, int attributeID, int size, GLsizei stride, const void * offset, int DrawMode)
 {
     glLogCall(glBindBuffer(GL_ARRAY_BUFFER, VBO));
-    glLogCall(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * data.size(), data.data(), DrawMode));
+    glLogCall(glBufferData(GL_ARRAY_BUFFER, sizeofData, data.data(), DrawMode));
 
     glLogCall(glEnableVertexAttribArray(attributeID));
     glLogCall(glVertexAttribPointer(attributeID, size, GL_FLOAT, GL_FALSE, stride, offset));
@@ -421,10 +423,20 @@ void gl::VertexBufferObject::setData(const std::vector<GLfloat>& data, int attri
     glLogCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
 }
 
-void gl::VertexBufferObject::setSubData(GLintptr offset, const std::vector<GLfloat>& data)
+void gl::VertexBufferObject::setSubData(GLintptr offset, GLsizeiptr sizeofData, const std::vector<GLfloat>& data)
 {
     glLogCall(glBindBuffer(GL_ARRAY_BUFFER, VBO));
-    glLogCall(glBufferSubData(GL_ARRAY_BUFFER, offset, sizeof(GLfloat) * data.size(), data.data()));
+    glLogCall(glBufferSubData(GL_ARRAY_BUFFER, offset, sizeofData, data.data()));
+    glLogCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
+}
+
+void gl::VertexBufferObject::defineVertexAttribPointer(int attributeID, int size, GLsizei stride, const void * offset)
+{
+    glLogCall(glBindBuffer(GL_ARRAY_BUFFER, VBO));
+
+    glLogCall(glEnableVertexAttribArray(attributeID));
+    glLogCall(glVertexAttribPointer(attributeID, size, GL_FLOAT, GL_FALSE, stride, offset));
+
     glLogCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
 }
 
