@@ -1,14 +1,14 @@
 # Woxel
 A simple voxel game made with opengl and SDL2
 
-[![Chunk-Generation-Perlin-Noise.png](https://i.postimg.cc/tJNYQ2TB/Chunk-Generation-Perlin-Noise.png)](https://postimg.cc/zH3JTwTh)
+[![Chunk-Generation-Perlin-Noise.png](./screenshots/Chunk-Generation-Perlin-Noise.png)
 
-[![simplex-generation.png](https://i.postimg.cc/ZRQkRV7Z/simplex-generation.png)](https://postimg.cc/qh2DDXHZ)
+[![simplex-generation.png](./screenshots/simplex-generation.png)
 
-[![water-beach-generation.png](https://i.postimg.cc/zvC00gv4/water-beach-generation.png)](https://postimg.cc/D4zrzmqc)
+[![water-beach-generation.png](./screenshots/water-beach-generation.png)
 
-[![trees.png](https://i.postimg.cc/4dm3B0PS/trees.png)](https://postimg.cc/34Q7wnPX)
+[![trees.png](./screenshots/trees.png)
 
-[![breaking-Animation.png](https://i.postimg.cc/mk4wHtbG/breaking-Animation.png)](https://postimg.cc/2bHhpjbH)
+[![breaking-Animation.png](./screenshots/breaking-Animation.png)
 
-[![hotbar.png](https://i.postimg.cc/jdNG0YnB/hotbar.png)](https://postimg.cc/ppW0z7ZB)
+[![hotbar.png](./screenshots/hotbar.png)
